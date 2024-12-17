@@ -406,15 +406,10 @@ export class TwitterInteractionClient {
     }
 
     async storeTwitter(originalTimestmp: number, originalUrl: string, msg: string): Promise<void> {
-        const originalTweetTime = new Date(originalTimestmp).toISOString();
+        const originalTweetTime = new Date(originalTimestmp * 1000).toISOString();
         const aivinciReplyTime = new Date().toISOString();
 
-        console.log("---------------storeTwitter, originalTweetTime", originalTweetTime);
-        console.log("---------------storeTwitter, aivinciReplyTime", aivinciReplyTime);
-        console.log("---------------storeTwitter, originalUrl", originalUrl);
-        console.log("---------------storeTwitter, aivinciReply", msg);
-
-        // this.store.storeTweet(originalTweetTime, aivinciReplyTime, originalUrl, msg);
+        await this.store.storeTweet(originalTweetTime, aivinciReplyTime, originalUrl, msg);
     }
 
     async buildConversationThread(

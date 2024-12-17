@@ -18,7 +18,7 @@ export class Store {
 
     async initializeDatabase(): Promise<Database> {
         const db = await open({
-            filename: "./database.db", // 数据库文件
+            filename: "../xscores.db", // 数据库文件
             driver: sqlite3.Database,  // 使用 sqlite3 驱动
         });
 
@@ -57,11 +57,20 @@ export class Store {
     }
 
     async storeTweet(originalTweetTime: string, aivinciReplyTime: string, originalTweetUrl: string, aivinciScoreTweet: string) {
-        const score = await this.extractSingleScore(aivinciScoreTweet);
+        let score = await this.extractSingleScore(aivinciScoreTweet);
+
+        if (score === null) {
+            score = 0;
+        }
+
+        originalTweetTime = originalTweetTime || '';
+        aivinciReplyTime = aivinciReplyTime || '';
+        originalTweetUrl = originalTweetUrl || '';
+        aivinciScoreTweet = aivinciScoreTweet || '';
 
         const database = await this.db;
         const stmt = await database.prepare(`
-            INSERT INTO tweets (original_tweet_time, aivinci_reply_time, original_tweet_url, aivinci_score_tweet, score)
+            INSERT INTO scores (original_tweet_time, aivinci_reply_time, original_tweet_url, aivinci_score_tweet, score)
             VALUES (?, ?, ?, ?, ?)
         `);
 
