@@ -81,3 +81,13 @@
 #### Defined in
 
 [packages/core/src/types.ts:1145](https://github.com/artela-network/focEliza/blob/main/packages/core/src/types.ts#L1145)
+
+***
+
+### VERIFIABLE\_LOGGING
+
+> **VERIFIABLE\_LOGGING**: `"verifiable_logging"`
+
+#### Defined in
+
+[packages/core/src/types.ts:1146](https://github.com/artela-network/focEliza/blob/main/packages/core/src/types.ts#L1146)

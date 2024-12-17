@@ -1,16 +1,18 @@
 import { Tweet } from "agent-twitter-client";
 import {
     composeContext,
+    elizaLogger,
     generateText,
     getEmbeddingZeroVector,
     IAgentRuntime,
     ModelClass,
-    stringToUuid,
     parseBooleanFromText,
+    ServiceType,
+    stringToUuid,
 } from "@ai16z/eliza";
-import { elizaLogger } from "@ai16z/eliza";
 import { ClientBase } from "./base.ts";
-import {genImage} from "./utils.ts";
+import { genImage } from "./utils.ts";
+import { VerifiableLogService } from "@ai16z/plugin-tee-verifiable-log";
 
 const twitterPostTemplate = `
 # Areas of Expertise
@@ -187,7 +189,9 @@ export class TwitterPostClient {
 
                 // 如果 概念命令9分之1 则生成一张 配图
                 const randomNumber = Math.floor(Math.random() * 900) + 1;
-                elizaLogger.log(`Posting new tweet random number:\n ${randomNumber}`);
+                elizaLogger.log(
+                    `Posting new tweet random number:\n ${randomNumber}`
+                );
 
                 // 检查是否满足 1/9 的概率
                 if (randomNumber <= 100) {
@@ -195,14 +199,18 @@ export class TwitterPostClient {
                     const imgData = await genImage(apiKey, content);
                     result = await this.client.requestQueue.add(
                         async () =>
-                            await this.client.twitterClient.sendTweet(content,undefined,imgData)
+                            await this.client.twitterClient.sendTweet(
+                                content,
+                                undefined,
+                                imgData
+                            )
                     );
-                }else {
+                } else {
                     result = await this.client.requestQueue.add(
                         async () =>
                             await this.client.twitterClient.sendTweet(content)
                     );
-               }
+                }
 
                 const body = await result.json();
                 if (!body?.data?.create_tweet?.tweet_results?.result) {
@@ -264,6 +272,21 @@ export class TwitterPostClient {
                     embedding: getEmbeddingZeroVector(),
                     createdAt: tweet.timestamp,
                 });
+                const postCtx = JSON.stringify({
+                    text: newTweetContent.trim(),
+                    url: tweet.permanentUrl,
+                });
+                await this.runtime
+                    .getService<VerifiableLogService>(
+                        ServiceType.VERIFIABLE_LOGGING
+                    )
+                    .log({
+                        agentId: this.runtime.agentId,
+                        roomId,
+                        userId: this.runtime.agentId,
+                        type: "post tweet",
+                        content: postCtx,
+                    });
             } catch (error) {
                 elizaLogger.error("Error sending tweet:", error);
             }

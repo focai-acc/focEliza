@@ -16,4 +16,4 @@
 
 ## Defined in
 
-[packages/core/src/types.ts:1154](https://github.com/artela-network/focEliza/blob/main/packages/core/src/types.ts#L1154)
+[packages/core/src/types.ts:1155](https://github.com/artela-network/focEliza/blob/main/packages/core/src/types.ts#L1155)

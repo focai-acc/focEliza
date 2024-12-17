@@ -14,9 +14,11 @@ import {
     stringToUuid,
     elizaLogger,
     getEmbeddingZeroVector,
+    ServiceType,
 } from "@ai16z/eliza";
 import { ClientBase } from "./base";
 import { buildConversationThread, sendTweet, wait } from "./utils.ts";
+import { VerifiableLogService } from "@ai16z/plugin-tee-verifiable-log";
 
 export const twitterMessageHandlerTemplate =
     `
@@ -358,6 +360,23 @@ export class TwitterInteractionClient {
                     await this.runtime.messageManager.createMemory(
                         responseMessage
                     );
+
+                    // === Add VerifiableLog
+                    const postCtx = JSON.stringify({
+                        text: responseMessage.content.text.trim(),
+                        url: tweet.permanentUrl,
+                    });
+                    await this.runtime
+                        .getService<VerifiableLogService>(
+                            ServiceType.VERIFIABLE_LOGGING
+                        )
+                        .log({
+                            agentId: this.runtime.agentId,
+                            roomId: stringToUuid(tweet.conversationId),
+                            userId: this.runtime.agentId,
+                            type: "reply tweet",
+                            content: postCtx,
+                        });
                 }
 
                 await this.runtime.evaluate(message, state);
