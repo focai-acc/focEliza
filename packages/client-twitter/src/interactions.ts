@@ -18,7 +18,6 @@ import {
 } from "@ai16z/eliza";
 import { ClientBase } from "./base";
 import { buildConversationThread, sendTweet, wait } from "./utils.ts";
-import { VerifiableLogService } from "@ai16z/plugin-tee-verifiable-log";
 import { Store } from "./store.ts";
 import { VerifiableLogService } from "@ai16z/plugin-tee-verifiable-log";
 
@@ -410,7 +409,7 @@ export class TwitterInteractionClient {
         const originalTweetTime = new Date(originalTimestmp * 1000).toISOString();
         const aivinciReplyTime = new Date().toISOString();
 
-        await this.store.storeTweet(originalTweetTime, aivinciReplyTime, originalUrl, msg);
+         this.store.storeTweet(originalTweetTime, aivinciReplyTime, originalUrl, msg);
     }
 
     async buildConversationThread(

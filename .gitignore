@@ -50,5 +50,5 @@ tsup.config.bundled_*.mjs
 .idea
 .vscode
 agent/generatedImages
-docs/**/*
-!docs/
+
+docs/**/*.md
