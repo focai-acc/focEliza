@@ -6,13 +6,13 @@
     "types": "dist/index.d.ts",
     "dependencies": {
         "@ai16z/eliza": "workspace:*",
+        "@ai16z/plugin-tee-verifiable-log": "workspace:*",
         "agent-twitter-client": "0.0.16",
-        "glob": "11.0.0",
-        "zod": "3.23.8",
-        "heurist": "^0.0.32",
         "axios": "^0.27.2",
-        "sqlite": "^5.1.1",
-        "sqlite3": "^5.1.7"
+        "better-sqlite3": "11.6.0",
+        "glob": "11.0.0",
+        "heurist": "^0.0.32",
+        "zod": "3.23.8"
     },
     "devDependencies": {
         "tsup": "8.3.5"

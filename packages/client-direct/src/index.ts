@@ -2,23 +2,31 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import express, { Request as ExpressRequest } from "express";
 import multer, { File } from "multer";
-import { elizaLogger, generateCaption, generateImage } from "@ai16z/eliza";
-import { composeContext } from "@ai16z/eliza";
-import { generateMessageResponse } from "@ai16z/eliza";
-import { messageCompletionFooter } from "@ai16z/eliza";
-import { AgentRuntime } from "@ai16z/eliza";
 import {
-    Content,
-    Memory,
-    ModelClass,
+    AgentRuntime,
     Client,
+    composeContext,
+    Content,
+    elizaLogger,
+    generateCaption,
+    generateImage,
+    generateMessageResponse,
     IAgentRuntime,
+    Memory,
+    messageCompletionFooter,
+    ModelClass,
+    ServiceType,
+    settings,
+    stringToUuid,
 } from "@ai16z/eliza";
-import { stringToUuid } from "@ai16z/eliza";
-import { settings } from "@ai16z/eliza";
 import { createApiRouter } from "./api.ts";
 import * as fs from "fs";
 import * as path from "path";
+import {
+    VerifiableLogService,
+    VerifiableLogQuery,
+} from "@ai16z/plugin-tee-verifiable-log";
+
 const upload = multer({ storage: multer.memoryStorage() });
 
 export const messageHandlerTemplate =
@@ -58,6 +66,7 @@ export interface SimliClientConfig {
     videoRef: any;
     audioRef: any;
 }
+
 export class DirectClient {
     public app: express.Application;
     private agents: Map<string, AgentRuntime>;
@@ -181,6 +190,7 @@ export class DirectClient {
                     roomId,
                     agentId: runtime.agentId,
                 };
+                elizaLogger.info("==A1 Received message:", userMessage ?? "");
 
                 const memory: Memory = {
                     id: messageId,
@@ -196,11 +206,13 @@ export class DirectClient {
                 const state = await runtime.composeState(userMessage, {
                     agentName: runtime.character.name,
                 });
+                elizaLogger.info("==B1 composeState:", state ?? "");
 
                 const context = composeContext({
                     state,
                     template: messageHandlerTemplate,
                 });
+                elizaLogger.info("==B2 composeContext:", context ?? "");
 
                 const response = await generateMessageResponse({
                     runtime: runtime,
@@ -365,6 +377,132 @@ export class DirectClient {
                         fileCount: 1,
                         fileName: fileName,
                         fileSize: stats.size,
+                    });
+                } catch (error) {
+                    console.error("Detailed error:", error);
+                    res.status(500).json({
+                        error: "Failed to download files from BagelDB",
+                        details: error.message,
+                        stack: error.stack,
+                    });
+                }
+            }
+        );
+        this.app.get(
+            "/verifiable/agents",
+            async (req: express.Request, res: express.Response) => {
+                try {
+
+                    // check if AgentRuntime exists
+                    const agentRuntime: AgentRuntime | undefined = this.agents
+                        .values()
+                        .next().value;
+                    if (!agentRuntime) {
+                        res.status(404).json({ error: "Agent not found" });
+                        return;
+                    }
+
+                     // call the listAgent method
+                    const pageQuery = await agentRuntime
+                        .getService<VerifiableLogService>(
+                            ServiceType.VERIFIABLE_LOGGING
+                        )
+                        .listAgent();
+
+                    res.json({
+                        success: true,
+                        message: 'Successfully get Agents',
+                        data: pageQuery
+                    });
+                } catch (error) {
+                    console.error("Detailed error:", error);
+                    res.status(500).json({
+                        error: "Failed to download files from BagelDB",
+                        details: error.message,
+                        stack: error.stack,
+                    });
+                }
+            }
+        );
+        this.app.post(
+            "/verifiable/attestation",
+            async (req: express.Request, res: express.Response) => {
+                try {
+
+                    const agentRuntime: AgentRuntime | undefined = this.agents
+                        .values()
+                        .next().value;
+                    if (!agentRuntime) {
+                        res.status(404).json({ error: "Agent not found" });
+                        return;
+                    }
+
+                    const query = req.body || {};
+
+                    const verifiableLogQuery = {
+                        agentId: query.agentId || '',
+                        publicKey: query.publicKey || '',
+                    };
+
+                    const pageQuery = await agentRuntime
+                        .getService<VerifiableLogService>(
+                            ServiceType.VERIFIABLE_LOGGING
+                        )
+                        .generateAttestation(verifiableLogQuery);
+
+                    res.json({
+                        success: true,
+                        message: 'Successfully get Attestation',
+                        data: pageQuery
+                    });
+                } catch (error) {
+                    console.error("Detailed error:", error);
+                    res.status(500).json({
+                        error: "Failed to download files from BagelDB",
+                        details: error.message,
+                        stack: error.stack,
+                    });
+                }
+            }
+        );
+        this.app.post(
+            "/verifiable/logs",
+            async (req: express.Request, res: express.Response) => {
+                try {
+
+                    // 检查 AgentRuntime 是否存在
+                    const agentRuntime: AgentRuntime | undefined = this.agents
+                        .values()
+                        .next().value;
+                    if (!agentRuntime) {
+                        res.status(404).json({ error: "Agent not found" });
+                        return;
+                    }
+
+                    const query = req.body.query || {};
+                    const page = parseInt(req.body.page) || 1;
+                    const pageSize = parseInt(req.body.pageSize) || 10;
+
+                    const verifiableLogQuery: VerifiableLogQuery = {
+                        idEq: query.idEq || '',
+                        agentIdEq: query.agentIdEq || '',
+                        roomIdEq: query.roomIdEq || '',
+                        userIdEq: query.userIdEq || '',
+                        typeEq: query.typeEq || '',
+                        contLike: query.contLike || '',
+                        signatureEq: query.signatureEq || ''
+                    };
+
+                    const pageQuery = await agentRuntime
+                        .getService<VerifiableLogService>(
+                            ServiceType.VERIFIABLE_LOGGING
+                        )
+                        .pageQueryLogs(verifiableLogQuery, page, pageSize);
+
+                    res.json({
+                        success: true,
+                        message: 'Successfully retrieved logs',
+                        data: pageQuery
                     });
                 } catch (error) {
                     console.error("Detailed error:", error);

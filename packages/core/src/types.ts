@@ -1143,6 +1143,7 @@ export enum ServiceType {
     SPEECH_GENERATION = "speech_generation",
     PDF = "pdf",
     BUTTPLUG = "buttplug",
+    VERIFIABLE_LOGGING = "verifiable_logging",
 }
 
 export enum LoggingLevel {

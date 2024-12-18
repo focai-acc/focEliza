@@ -25,6 +25,8 @@ import {
 import { zgPlugin } from "@ai16z/plugin-0g";
 import { goatPlugin } from "@ai16z/plugin-goat";
 import { bootstrapPlugin } from "@ai16z/plugin-bootstrap";
+import { verifiableLogPlugin } from "@ai16z/plugin-tee-verifiable-log";
+
 // import { buttplugPlugin } from "@ai16z/plugin-buttplug";
 import {
     coinbaseCommercePlugin,
@@ -359,6 +361,10 @@ export function createAgent(
         character,
         plugins: [
             bootstrapPlugin,
+            (getSecret(character, "DSTACK_SIMULATOR_ENDPOINT") && getSecret(character,"VLOG"))
+                ? verifiableLogPlugin
+                : null,
+            getSecret(character, "WALLET_PUBLIC_KEY") ||
             getSecret(character, "CONFLUX_CORE_PRIVATE_KEY")
                 ? confluxPlugin
                 : null,
