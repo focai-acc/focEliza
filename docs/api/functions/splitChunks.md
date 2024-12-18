@@ -28,4 +28,4 @@ Promise resolving to array of text chunks with bleed sections
 
 ## Defined in
 
-[packages/core/src/generation.ts:556](https://github.com/artela-network/focEliza/blob/main/packages/core/src/generation.ts#L556)
+[packages/core/src/generation.ts:547](https://github.com/ai16z/eliza/blob/main/packages/core/src/generation.ts#L547)

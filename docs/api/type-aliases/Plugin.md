@@ -52,4 +52,4 @@ Optional clients
 
 ## Defined in
 
-[packages/core/src/types.ts:574](https://github.com/artela-network/focEliza/blob/main/packages/core/src/types.ts#L574)
+[packages/core/src/types.ts:572](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L572)

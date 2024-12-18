@@ -22,7 +22,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:890](https://github.com/artela-network/focEliza/blob/main/packages/core/src/types.ts#L890)
+[packages/core/src/types.ts:888](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L888)
 
 ***
 
@@ -46,7 +46,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:895](https://github.com/artela-network/focEliza/blob/main/packages/core/src/types.ts#L895)
+[packages/core/src/types.ts:893](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L893)
 
 ***
 
@@ -68,4 +68,4 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:901](https://github.com/artela-network/focEliza/blob/main/packages/core/src/types.ts#L901)
+[packages/core/src/types.ts:899](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L899)

@@ -32,10 +32,6 @@ Model configurations by provider
 
 > **llama\_cloud**: [`Model`](Model.md)
 
-### together
-
-> **together**: [`Model`](Model.md)
-
 ### llama\_local
 
 > **llama\_local**: [`Model`](Model.md)
@@ -86,4 +82,4 @@ Model configurations by provider
 
 ## Defined in
 
-[packages/core/src/types.ts:188](https://github.com/artela-network/focEliza/blob/main/packages/core/src/types.ts#L188)
+[packages/core/src/types.ts:188](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L188)

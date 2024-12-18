@@ -24,7 +24,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:968](https://github.com/artela-network/focEliza/blob/main/packages/core/src/types.ts#L968)
+[packages/core/src/types.ts:966](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L966)
 
 ## Methods
 
@@ -48,7 +48,7 @@ Add abstract initialize method that must be implemented by derived classes
 
 #### Defined in
 
-[packages/core/src/types.ts:973](https://github.com/artela-network/focEliza/blob/main/packages/core/src/types.ts#L973)
+[packages/core/src/types.ts:971](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L971)
 
 ***
 
@@ -62,7 +62,7 @@ Add abstract initialize method that must be implemented by derived classes
 
 #### Defined in
 
-[packages/core/src/types.ts:1116](https://github.com/artela-network/focEliza/blob/main/packages/core/src/types.ts#L1116)
+[packages/core/src/types.ts:1114](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L1114)
 
 ***
 
@@ -80,4 +80,4 @@ Add abstract initialize method that must be implemented by derived classes
 
 #### Defined in
 
-[packages/core/src/types.ts:1117](https://github.com/artela-network/focEliza/blob/main/packages/core/src/types.ts#L1117)
+[packages/core/src/types.ts:1115](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L1115)

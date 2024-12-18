@@ -16,4 +16,4 @@
 
 ## Defined in
 
-[packages/core/src/generation.ts:1005](https://github.com/artela-network/focEliza/blob/main/packages/core/src/generation.ts#L1005)
+[packages/core/src/generation.ts:999](https://github.com/ai16z/eliza/blob/main/packages/core/src/generation.ts#L999)

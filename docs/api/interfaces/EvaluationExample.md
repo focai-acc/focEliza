@@ -14,7 +14,7 @@ Evaluation context
 
 #### Defined in
 
-[packages/core/src/types.ts:419](https://github.com/artela-network/focEliza/blob/main/packages/core/src/types.ts#L419)
+[packages/core/src/types.ts:417](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L417)
 
 ***
 
@@ -26,7 +26,7 @@ Example messages
 
 #### Defined in
 
-[packages/core/src/types.ts:422](https://github.com/artela-network/focEliza/blob/main/packages/core/src/types.ts#L422)
+[packages/core/src/types.ts:420](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L420)
 
 ***
 
@@ -38,4 +38,4 @@ Expected outcome
 
 #### Defined in
 
-[packages/core/src/types.ts:425](https://github.com/artela-network/focEliza/blob/main/packages/core/src/types.ts#L425)
+[packages/core/src/types.ts:423](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L423)

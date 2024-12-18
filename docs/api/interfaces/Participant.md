@@ -14,7 +14,7 @@ Unique identifier
 
 #### Defined in
 
-[packages/core/src/types.ts:520](https://github.com/artela-network/focEliza/blob/main/packages/core/src/types.ts#L520)
+[packages/core/src/types.ts:518](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L518)
 
 ***
 
@@ -26,4 +26,4 @@ Associated account
 
 #### Defined in
 
-[packages/core/src/types.ts:523](https://github.com/artela-network/focEliza/blob/main/packages/core/src/types.ts#L523)
+[packages/core/src/types.ts:521](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L521)

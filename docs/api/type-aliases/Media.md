@@ -46,4 +46,4 @@ Text content
 
 ## Defined in
 
-[packages/core/src/types.ts:540](https://github.com/artela-network/focEliza/blob/main/packages/core/src/types.ts#L540)
+[packages/core/src/types.ts:538](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L538)

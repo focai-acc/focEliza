@@ -14,4 +14,4 @@
 
 ## Defined in
 
-[packages/core/src/models.ts:385](https://github.com/artela-network/focEliza/blob/main/packages/core/src/models.ts#L385)
+[packages/core/src/models.ts:364](https://github.com/ai16z/eliza/blob/main/packages/core/src/models.ts#L364)

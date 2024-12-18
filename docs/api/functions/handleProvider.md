@@ -20,4 +20,4 @@ Configuration options specific to the provider.
 
 ## Defined in
 
-[packages/core/src/generation.ts:1156](https://github.com/artela-network/focEliza/blob/main/packages/core/src/generation.ts#L1156)
+[packages/core/src/generation.ts:1150](https://github.com/ai16z/eliza/blob/main/packages/core/src/generation.ts#L1150)
