@@ -1,7 +1,5 @@
 node_modules
 /out
-docs/**/*
-!docs/
 
 .env
 .env.production
@@ -52,3 +50,5 @@ tsup.config.bundled_*.mjs
 .idea
 .vscode
 agent/generatedImages
+docs/**/*
+!docs/
