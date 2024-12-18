@@ -26,7 +26,7 @@ export class SQLite3VerifiableDAO extends VerifiableDAO<Database> {
 
     async initializeSchema(): Promise<void> {
         this.db.exec(`
-            CREATE TABLE IF NOT EXISTS "verifiable_logs"
+            CREATE TABLE IF NOT EXISTS "tee_verifiable_logs"
             (
                 "id"         TEXT PRIMARY KEY,
                 "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -40,13 +40,14 @@ export class SQLite3VerifiableDAO extends VerifiableDAO<Database> {
         `);
 
         this.db.exec(`
-            CREATE TABLE IF NOT EXISTS "verifiable_agents"
+            CREATE TABLE IF NOT EXISTS "tee_verifiable_agents"
             (
-                "id"         TEXT PRIMARY KEY,
-                "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                "agent_id"   TEXT NOT NULL,
-                "tee_key"    TEXT NOT NULL,
-                "public_key" TEXT NOT NULL,
+                "id"                    TEXT PRIMARY KEY,
+                "created_at"            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                "agent_id"              TEXT NOT NULL,
+                "agent_name"            TEXT,
+                "agent_keypair_path"    TEXT NOT NULL,
+                "agent_keypair_vlog_pk" TEXT NOT NULL,
                 UNIQUE ("agent_id")
             );
         `);
@@ -54,7 +55,7 @@ export class SQLite3VerifiableDAO extends VerifiableDAO<Database> {
 
     async addLog(log: VerifiableLog): Promise<boolean> {
         const sql = `
-            INSERT INTO "verifiable_logs" ("id", "created_at", "agent_id", "room_id", "user_id", "type", "content",
+            INSERT INTO "tee_verifiable_logs" ("id", "created_at", "agent_id", "room_id", "user_id", "type", "content",
                                            "signature")
             VALUES (?, ?, ?, ?, ?, ?, ?, ?);
         `;
@@ -132,7 +133,7 @@ export class SQLite3VerifiableDAO extends VerifiableDAO<Database> {
         try {
             // 查询总条数
             const totalQuery = `SELECT COUNT(*) AS total
-                                FROM verifiable_logs ${whereClause}`;
+                                FROM tee_verifiable_logs ${whereClause}`;
             const stmt = this.db.prepare(totalQuery);
             const totalResult = stmt.get(params);
             const total = totalResult.total;
@@ -140,7 +141,7 @@ export class SQLite3VerifiableDAO extends VerifiableDAO<Database> {
             // 查询分页数据
             const dataQuery = `
                 SELECT *
-                FROM verifiable_logs ${whereClause}
+                FROM tee_verifiable_logs ${whereClause}
                 ORDER BY created_at DESC
                 LIMIT ? OFFSET ?
             `;
@@ -155,15 +156,15 @@ export class SQLite3VerifiableDAO extends VerifiableDAO<Database> {
                 data: dataResult,
             } as PageQuery<VerifiableLog[]>;
         } catch (error) {
-            console.error("Error querying verifiable_logs:", error);
+            console.error("Error querying tee_verifiable_logs:", error);
             throw error;
         }
     }
 
     async addAgent(agent: VerifiableAgent): Promise<boolean> {
         const sql = `
-            INSERT INTO "verifiable_agents" ("id", "created_at", "agent_id", "tee_key", "public_key")
-            VALUES (?, ?, ?, ?, ?);
+            INSERT INTO "tee_verifiable_agents" ("id", "created_at", "agent_id","agent_name","agent_keypair_path", "agent_keypair_vlog_pk")
+            VALUES (?, ?, ?, ?, ?,?);
         `;
         try {
             this.db
@@ -172,8 +173,9 @@ export class SQLite3VerifiableDAO extends VerifiableDAO<Database> {
                     agent.id || uuidv4(),
                     agent.created_at || new Date().getTime(),
                     agent.agent_id,
-                    agent.tee_key,
-                    agent.public_key
+                    agent.agent_name||"agent bot",
+                    agent.agent_keypair_path,
+                    agent.agent_keypair_vlog_pk
                 );
             return true;
         } catch (error) {
@@ -184,7 +186,7 @@ export class SQLite3VerifiableDAO extends VerifiableDAO<Database> {
 
     async getAgent(agentId: string): Promise<VerifiableAgent> {
         const sql = `SELECT *
-                     FROM "verifiable_agents"
+                     FROM "tee_verifiable_agents"
                      WHERE agent_id = ?`;
         try {
             const agent = this.db.prepare(sql).get(agentId);
@@ -201,7 +203,7 @@ export class SQLite3VerifiableDAO extends VerifiableDAO<Database> {
 
     async listAgent(): Promise<VerifiableAgent[]> {
         const sql = `SELECT *
-                     FROM "verifiable_agents"`;
+                     FROM "tee_verifiable_agents"`;
         try {
             const agents = this.db.prepare(sql).all();
             return agents as VerifiableAgent[];

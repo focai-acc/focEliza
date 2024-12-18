@@ -59,6 +59,7 @@ export class VerifiableLogProvider implements IVerifiableLogProvider {
     async registerAgent(
         params: {
             agentId: string;
+            agentName: string;
         },
         endpoint: string
     ): Promise<boolean> {
@@ -79,8 +80,9 @@ export class VerifiableLogProvider implements IVerifiableLogProvider {
 
         return this.dao.addAgent(<VerifiableAgent>{
             agent_id: params.agentId,
-            tee_key: this.keyPath,
-            public_key: publicKey,
+            agent_name: params.agentName,
+            agent_keypair_path: this.keyPath,
+            agent_keypair_vlog_pk: publicKey,
         });
     }
 
@@ -96,9 +98,9 @@ export class VerifiableLogProvider implements IVerifiableLogProvider {
         }
         const raProvider = new RemoteAttestationProvider(endpoint);
         try {
-            // 生成 32 字节的报告数据 (reportData)，包含公钥的哈希值
+            // Generate 32-byte report data (reportData) containing the hash value of the public key.
             const reportData = JSON.stringify(params);
-            // 调用远程证明接口
+            // Call the remote attestation interface.
             return raProvider.generateAttestation(reportData);
         } catch (error) {
             console.error("Failed to generate attestation quote:", error);
