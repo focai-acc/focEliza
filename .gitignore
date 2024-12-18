@@ -1,6 +1,7 @@
 node_modules
 /out
-
+docs/**/*
+!docs/
 
 .env
 .env.production
