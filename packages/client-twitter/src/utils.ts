@@ -355,7 +355,7 @@ function splitParagraph(paragraph: string, maxLength: number): string[] {
 
 export async function genImage(heuristApiKey: string,strPrompt: string): Promise<any> {
     const heurist = new Heurist({
-        apiKey: heuristApiKey, // 默认值，可以省略
+        apiKey: heuristApiKey,
     });
 
     try {
@@ -375,12 +375,12 @@ export async function genImage(heuristApiKey: string,strPrompt: string): Promise
         if (heuristResponse.url) {
             const imageUrl = heuristResponse.url;
 
-            // 从 URL 下载图像
+            // Download an image from a URL.
             const axiosResponse = await axios.get(imageUrl, {
                 responseType: "arraybuffer",
             });
 
-            // 转换为媒体数据
+            // Convert to media data.
             const mediaData = [
                 {
                     data: Buffer.from(axiosResponse.data),
@@ -394,6 +394,6 @@ export async function genImage(heuristApiKey: string,strPrompt: string): Promise
         }
     } catch (error) {
         elizaLogger.error("Error generating image:", error);
-        throw error; // 抛出错误以便调用者处理
+        throw error;
     }
 }

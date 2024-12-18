@@ -187,13 +187,13 @@ export class TwitterPostClient {
                 elizaLogger.log(`Posting new tweet:\n ${content}`);
                 let result: Response;
 
-                // 如果 概念命令9分之1 则生成一张 配图
+                // If the concept command is one ninth, then generate an illustration.
                 const randomNumber = Math.floor(Math.random() * 900) + 1;
                 elizaLogger.log(
                     `Posting new tweet random number:\n ${randomNumber}`
                 );
 
-                // 检查是否满足 1/9 的概率
+                // check whether the probability of 1 9 is met
                 if (randomNumber <= 100) {
                     const apiKey = this.runtime.getSetting("HEURIST_API_KEY");
                     const imgData = await genImage(apiKey, content);
