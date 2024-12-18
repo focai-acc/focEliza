@@ -393,7 +393,7 @@ export class DirectClient {
             async (req: express.Request, res: express.Response) => {
                 try {
 
-                    // 检查 AgentRuntime 是否存在
+                    // check if AgentRuntime exists
                     const agentRuntime: AgentRuntime | undefined = this.agents
                         .values()
                         .next().value;
@@ -402,14 +402,13 @@ export class DirectClient {
                         return;
                     }
 
-                     // 调用 pageQueryLogs 方法
+                     // call the listAgent method
                     const pageQuery = await agentRuntime
                         .getService<VerifiableLogService>(
                             ServiceType.VERIFIABLE_LOGGING
                         )
                         .listAgent();
 
-                    // 返回结果
                     res.json({
                         success: true,
                         message: 'Successfully get Agents',
@@ -430,7 +429,6 @@ export class DirectClient {
             async (req: express.Request, res: express.Response) => {
                 try {
 
-                    // 检查 AgentRuntime 是否存在
                     const agentRuntime: AgentRuntime | undefined = this.agents
                         .values()
                         .next().value;
@@ -439,7 +437,6 @@ export class DirectClient {
                         return;
                     }
 
-                    // 解析和验证请求参数
                     const query = req.body || {};
 
                     const verifiableLogQuery = {
@@ -447,14 +444,12 @@ export class DirectClient {
                         publicKey: query.publicKey || '',
                     };
 
-                    // 调用 pageQueryLogs 方法
                     const pageQuery = await agentRuntime
                         .getService<VerifiableLogService>(
                             ServiceType.VERIFIABLE_LOGGING
                         )
                         .generateAttestation(verifiableLogQuery);
 
-                    // 返回结果
                     res.json({
                         success: true,
                         message: 'Successfully get Attestation',
@@ -484,10 +479,9 @@ export class DirectClient {
                         return;
                     }
 
-                    // 解析和验证请求参数
                     const query = req.body.query || {};
-                    const page = parseInt(req.body.page) || 1; // 确保 page 是 number
-                    const pageSize = parseInt(req.body.pageSize) || 10; // 确保 pageSize 是 number
+                    const page = parseInt(req.body.page) || 1;
+                    const pageSize = parseInt(req.body.pageSize) || 10;
 
                     const verifiableLogQuery: VerifiableLogQuery = {
                         idEq: query.idEq || '',
@@ -499,14 +493,12 @@ export class DirectClient {
                         signatureEq: query.signatureEq || ''
                     };
 
-                    // 调用 pageQueryLogs 方法
                     const pageQuery = await agentRuntime
                         .getService<VerifiableLogService>(
                             ServiceType.VERIFIABLE_LOGGING
                         )
                         .pageQueryLogs(verifiableLogQuery, page, pageSize);
 
-                    // 返回结果
                     res.json({
                         success: true,
                         message: 'Successfully retrieved logs',
