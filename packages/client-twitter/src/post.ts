@@ -10,6 +10,7 @@ import {
 } from "@ai16z/eliza";
 import { elizaLogger } from "@ai16z/eliza";
 import { ClientBase } from "./base.ts";
+import {genImage} from "./utils.ts";
 
 const twitterPostTemplate = `
 # Areas of Expertise
@@ -182,11 +183,27 @@ export class TwitterPostClient {
 
             try {
                 elizaLogger.log(`Posting new tweet:\n ${content}`);
+                let result: Response;
 
-                const result = await this.client.requestQueue.add(
-                    async () =>
-                        await this.client.twitterClient.sendTweet(content)
-                );
+                // 如果 概念命令9分之1 则生成一张 配图
+                const randomNumber = Math.floor(Math.random() * 900) + 1;
+                elizaLogger.log(`Posting new tweet random number:\n ${randomNumber}`);
+
+                // 检查是否满足 1/9 的概率
+                if (randomNumber <= 100) {
+                    const apiKey = this.runtime.getSetting("HEURIST_API_KEY");
+                    const imgData = await genImage(apiKey, content);
+                    result = await this.client.requestQueue.add(
+                        async () =>
+                            await this.client.twitterClient.sendTweet(content,undefined,imgData)
+                    );
+                }else {
+                    result = await this.client.requestQueue.add(
+                        async () =>
+                            await this.client.twitterClient.sendTweet(content)
+                    );
+               }
+
                 const body = await result.json();
                 if (!body?.data?.create_tweet?.tweet_results?.result) {
                     console.error("Error sending tweet; Bad response:", body);

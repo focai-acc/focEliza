@@ -47,3 +47,6 @@ packages/plugin-coinbase/package-lock.json
 tsup.config.bundled_*.mjs
 
 .turbo
+.idea
+.vscode
+agent/generatedImages

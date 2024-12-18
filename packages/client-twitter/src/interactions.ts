@@ -17,6 +17,7 @@ import {
 } from "@ai16z/eliza";
 import { ClientBase } from "./base";
 import { buildConversationThread, sendTweet, wait } from "./utils.ts";
+import { Store } from "./store.ts";
 
 export const twitterMessageHandlerTemplate =
     `
@@ -82,10 +83,12 @@ Thread of Tweets You Are Replying To:
 export class TwitterInteractionClient {
     client: ClientBase;
     runtime: IAgentRuntime;
+    store: Store;
 
     constructor(client: ClientBase, runtime: IAgentRuntime) {
         this.client = client;
         this.runtime = runtime;
+        this.store = new Store();
     }
 
     async start() {
@@ -334,7 +337,8 @@ export class TwitterInteractionClient {
                         response,
                         message.roomId,
                         this.runtime.getSetting("TWITTER_USERNAME"),
-                        tweet.id
+                        tweet.id,
+                        tweet.text
                     );
                     return memories;
                 };
@@ -374,10 +378,19 @@ export class TwitterInteractionClient {
                     responseInfo
                 );
                 await wait();
+
+                await this.storeTwitter(tweet.timestamp, tweet.permanentUrl, response.text);
             } catch (error) {
                 elizaLogger.error(`Error sending response tweet: ${error}`);
             }
         }
+    }
+
+    async storeTwitter(originalTimestmp: number, originalUrl: string, msg: string): Promise<void> {
+        const originalTweetTime = new Date(originalTimestmp * 1000).toISOString();
+        const aivinciReplyTime = new Date().toISOString();
+
+        await this.store.storeTweet(originalTweetTime, aivinciReplyTime, originalUrl, msg);
     }
 
     async buildConversationThread(

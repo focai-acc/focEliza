@@ -4,6 +4,8 @@ import { Content, Memory, UUID } from "@ai16z/eliza";
 import { stringToUuid } from "@ai16z/eliza";
 import { ClientBase } from "./base";
 import { elizaLogger } from "@ai16z/eliza";
+import Heurist from "heurist";
+import axios from "axios";
 
 const MAX_TWEET_LENGTH = 280; // Updated to Twitter's current character limit
 
@@ -168,20 +170,46 @@ export async function sendTweet(
     content: Content,
     roomId: UUID,
     twitterUsername: string,
-    inReplyTo: string
+    inReplyTo: string,
+    inReplyText: string
 ): Promise<Memory[]> {
     const tweetChunks = splitTweetContent(content.text);
     const sentTweets: Tweet[] = [];
     let previousTweetId = inReplyTo;
 
+    elizaLogger.info("==start sendTweet:", inReplyText);
     for (const chunk of tweetChunks) {
-        const result = await client.requestQueue.add(
-            async () =>
-                await client.twitterClient.sendTweet(
-                    chunk.trim(),
-                    previousTweetId
-                )
-        );
+        let result: Response;
+        const keywords = ["image", "img", "picture"];
+        if (
+            inReplyText &&
+            keywords.some(keyword => inReplyText.includes(keyword))
+        ) {
+            elizaLogger.info("===start genImage:", content.text);
+            const apiKey = this.runtime.getSetting("HEURIST_API_KEY");
+            const imageData = await genImage(apiKey,content.text);
+            elizaLogger.info("==end genImage:", imageData);
+
+            if (imageData) {
+                result = await client.requestQueue.add(
+                    async () =>
+                        await client.twitterClient.sendTweet(
+                            chunk.trim(),
+                            previousTweetId,
+                            imageData
+                        )
+                );
+            }
+        } else {
+            result = await client.requestQueue.add(
+                async () =>
+                    await client.twitterClient.sendTweet(
+                        chunk.trim(),
+                        previousTweetId
+                    )
+            );
+        }
+
         const body = await result.json();
 
         // if we have a response
@@ -323,4 +351,49 @@ function splitParagraph(paragraph: string, maxLength: number): string[] {
     }
 
     return chunks;
+}
+
+export async function genImage(heuristApiKey: string,strPrompt: string): Promise<any> {
+    const heurist = new Heurist({
+        apiKey: heuristApiKey, // 默认值，可以省略
+    });
+
+    try {
+        const heuristResponse = await heurist.images.generate({
+            model: "SDXL",
+            prompt: strPrompt,
+            neg_prompt: "worst quality",
+            num_iterations: 25,
+            guidance_scale: 7.5,
+            width: 1024,
+            height: 768,
+            seed: -1,
+        });
+
+        elizaLogger.debug("Gen image result:", heuristResponse);
+
+        if (heuristResponse.url) {
+            const imageUrl = heuristResponse.url;
+
+            // 从 URL 下载图像
+            const axiosResponse = await axios.get(imageUrl, {
+                responseType: "arraybuffer",
+            });
+
+            // 转换为媒体数据
+            const mediaData = [
+                {
+                    data: Buffer.from(axiosResponse.data),
+                    mediaType: "image/png",
+                },
+            ];
+            return mediaData;
+        } else {
+            elizaLogger.error("No URL returned in the response.");
+            return null;
+        }
+    } catch (error) {
+        elizaLogger.error("Error generating image:", error);
+        throw error; // 抛出错误以便调用者处理
+    }
 }
