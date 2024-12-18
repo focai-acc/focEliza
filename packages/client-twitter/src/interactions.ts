@@ -18,6 +18,7 @@ import {
 } from "@ai16z/eliza";
 import { ClientBase } from "./base";
 import { buildConversationThread, sendTweet, wait } from "./utils.ts";
+import { VerifiableLogService } from "@ai16z/plugin-tee-verifiable-log";
 import { Store } from "./store.ts";
 import { VerifiableLogService } from "@ai16z/plugin-tee-verifiable-log";
 

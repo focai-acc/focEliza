@@ -10,7 +10,7 @@
         "glob": "11.0.0",
         "zod": "3.23.8",
         "heurist": "^0.0.32",
-        "sqlite": "^5.1.1",
+        "axios": "^0.27.2",
         "sqlite3": "^5.1.7",
         "axios": "^0.27.2",
         "@ai16z/plugin-tee-verifiable-log": "workspace:*"
