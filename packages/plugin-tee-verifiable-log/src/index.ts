@@ -46,7 +46,7 @@ export class VerifiableLogService extends Service {
         this.vlogOpen = truthyValues.includes(value.toLowerCase());
 
         const isOK = await this.verifiableLogProvider.registerAgent(
-            { agentId: runtime.agentId, agentName: runtime?.character?.name },
+            { agentId: runtime?.agentId, agentName: runtime?.character?.name },
             this.teeEndpoint
         );
         if (!isOK) {
