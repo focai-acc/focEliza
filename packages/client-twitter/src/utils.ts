@@ -177,7 +177,6 @@ export async function sendTweet(
     const sentTweets: Tweet[] = [];
     let previousTweetId = inReplyTo;
 
-    elizaLogger.info("==start sendTweet:", inReplyText);
     for (const chunk of tweetChunks) {
         let result: Response;
         const keywords = ["image", "img", "picture"];

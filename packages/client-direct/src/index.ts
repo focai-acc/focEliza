@@ -190,7 +190,6 @@ export class DirectClient {
                     roomId,
                     agentId: runtime.agentId,
                 };
-                elizaLogger.info("==A1 Received message:", userMessage ?? "");
 
                 const memory: Memory = {
                     id: messageId,
@@ -206,13 +205,11 @@ export class DirectClient {
                 const state = await runtime.composeState(userMessage, {
                     agentName: runtime.character.name,
                 });
-                elizaLogger.info("==B1 composeState:", state ?? "");
 
                 const context = composeContext({
                     state,
                     template: messageHandlerTemplate,
                 });
-                elizaLogger.info("==B2 composeContext:", context ?? "");
 
                 const response = await generateMessageResponse({
                     runtime: runtime,
