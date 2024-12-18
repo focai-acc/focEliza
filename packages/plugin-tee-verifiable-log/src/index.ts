@@ -15,6 +15,7 @@ export class VerifiableLogService extends Service {
     getInstance(): VerifiableLogService {
         return this;
     }
+
     static get serviceType(): ServiceType {
         return ServiceType.VERIFIABLE_LOGGING;
     }
@@ -45,7 +46,7 @@ export class VerifiableLogService extends Service {
         this.vlogOpen = truthyValues.includes(value.toLowerCase());
 
         const isOK = await this.verifiableLogProvider.registerAgent(
-            { agentId: runtime.agentId },
+            { agentId: runtime?.agentId, agentName: runtime?.character?.name },
             this.teeEndpoint
         );
         if (!isOK) {

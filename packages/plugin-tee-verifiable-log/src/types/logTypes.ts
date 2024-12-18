@@ -25,9 +25,9 @@ export interface VerifiableAgent {
     id: string; // Primary Key
     created_at?: Date; // Default value: CURRENT_TIMESTAMP
     agent_id: string; // Not null
-    tee_key: string; // Not null
-    public_key: string; // Not null
-
+    agent_name: string; // Not null
+    agent_keypair_path: string; // Not null
+    agent_keypair_vlog_pk: string; // Not null
 }
 
 export interface PageQuery<Result = any> {

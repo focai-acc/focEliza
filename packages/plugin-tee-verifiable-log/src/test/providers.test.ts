@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, assert } from "vitest";
 import { SQLite3VerifiableDAO } from "../adapters/sqliteVerifiableDAO.ts";
-
 import Database from "better-sqlite3";
+import type { Database as DatabaseType } from "better-sqlite3";
 import { v4 as uuidv4 } from "uuid";
 import os from "os";
 import path from "path";
@@ -13,7 +13,7 @@ import {
 import { VerifiableLogProvider } from "../providers/verifiableLogProvider.ts";
 
 describe("SQLite3VerifiableDAO", () => {
-    let db: Database;
+    let db: DatabaseType;
     let sqLite3VerifiableDAO: SQLite3VerifiableDAO;
 
     let verifiableLogProvider: VerifiableLogProvider;
@@ -28,10 +28,10 @@ describe("SQLite3VerifiableDAO", () => {
     });
     describe("VerifiableLogProvider Management", () => {
         it("should verifiableLogProvider.log when available", async () => {
-            let testId = uuidv4();
+            let uid = uuidv4();
             await verifiableLogProvider.log(
                 {
-                    agentId: testId,
+                    agentId: uid,
                     roomId: "roomId",
                     userId: "userId",
                     type: "type1",
@@ -42,19 +42,20 @@ describe("SQLite3VerifiableDAO", () => {
 
             const pageResult1 = await sqLite3VerifiableDAO.pageQueryLogs(
                 <VerifiableLogQuery>{
-                    agentIdEq: testId,
+                    agentIdEq: uid,
                 },
                 1,
                 2
             );
             console.log("pageResult1:", pageResult1);
+            expect(pageResult1).not.toBeNull();
             assert.equal(pageResult1.data.length, 1);
         });
 
         it("should registerAgent and  getAgent when available", async () => {
             const testAgentId = uuidv4();
             await verifiableLogProvider.registerAgent(
-                { agentId: testAgentId },
+                { agentId: testAgentId, agentName: "test bot" },
                 teeEndpoint
             );
             console.log("testAgentId:", testAgentId);
@@ -65,7 +66,7 @@ describe("SQLite3VerifiableDAO", () => {
             console.log("pageResult1:", pageResult1);
             expect(pageResult1).not.toBeNull();
 
-            const stringPromise =await verifiableLogProvider.generateAttestation({ agentId: testAgentId ,publicKey: pageResult1.public_key}, teeEndpoint);
+            const stringPromise =await verifiableLogProvider.generateAttestation({ agentId: testAgentId ,publicKey: pageResult1.agent_keypair_vlog_pk}, teeEndpoint);
             console.log("stringPromise:", stringPromise);
             expect(stringPromise).not.toBeNull();
         });
@@ -132,8 +133,9 @@ describe("SQLite3VerifiableDAO", () => {
             const agentId = uuidv4();
             await sqLite3VerifiableDAO.addAgent(<VerifiableAgent>{
                 agent_id: agentId,
-                tee_key: "/secretKey/path/",
-                public_key: "dddd的的的",
+                agent_name:"test bot",
+                agent_keypair_path: "/secretKey/path/",
+                agent_keypair_vlog_pk: "dddd的的的",
             });
             var agent = await sqLite3VerifiableDAO.getAgent(agentId);
             expect(agent).not.toBeNull();
@@ -145,8 +147,9 @@ describe("SQLite3VerifiableDAO", () => {
             const agentId = uuidv4();
             await sqLite3VerifiableDAO.addAgent(<VerifiableAgent>{
                 agent_id: agentId,
-                tee_key: "/secretKey/path/",
-                public_key: "dddd的的的",
+                agent_name:"test bot",
+                agent_keypair_path: "/secretKey/path/",
+                agent_keypair_vlog_pk: "dddd的的的",
             });
             const agentList = await sqLite3VerifiableDAO.listAgent();
             // determine if agentlist data is not empty
