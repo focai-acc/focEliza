@@ -87,7 +87,6 @@ export class SQLite3VerifiableDAO extends VerifiableDAO<Database> {
         const conditions: string[] = [];
         const params: any[] = [];
 
-        // 动态构建查询条件
         if (query.idEq) {
             conditions.push(`id = ?`);
             params.push(query.idEq);
@@ -117,28 +116,23 @@ export class SQLite3VerifiableDAO extends VerifiableDAO<Database> {
             params.push(query.signatureEq);
         }
 
-        // WHERE 子句
         const whereClause =
             conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
-        // 分页参数
         if (page < 1) {
             page = 1;
         }
         const offset = (page - 1) * pageSize;
         const limit = pageSize;
 
-        // 数据库连接
 
         try {
-            // 查询总条数
             const totalQuery = `SELECT COUNT(*) AS total
                                 FROM tee_verifiable_logs ${whereClause}`;
             const stmt = this.db.prepare(totalQuery);
             const totalResult = stmt.get(params);
             const total = totalResult.total;
 
-            // 查询分页数据
             const dataQuery = `
                 SELECT *
                 FROM tee_verifiable_logs ${whereClause}
