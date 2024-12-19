@@ -53,6 +53,8 @@ import { suiPlugin } from "@ai16z/plugin-sui";
 import { TEEMode, teePlugin } from "@ai16z/plugin-tee";
 import { tonPlugin } from "@ai16z/plugin-ton";
 import { zksyncEraPlugin } from "@ai16z/plugin-zksync-era";
+import { verifiableLogPlugin } from "@ai16z/plugin-tee-verifiable-log";
+
 import Database from "better-sqlite3";
 import fs from "fs";
 import path from "path";
@@ -554,6 +556,9 @@ export async function createAgent(
             getSecret(character, "TON_PRIVATE_KEY") ? tonPlugin : null,
             getSecret(character, "SUI_PRIVATE_KEY") ? suiPlugin : null,
             getSecret(character, "STORY_PRIVATE_KEY") ? storyPlugin : null,
+            (getSecret(character, "DSTACK_SIMULATOR_ENDPOINT") && getSecret(character,"VLOG"))
+                ? verifiableLogPlugin
+                : null,
         ].filter(Boolean),
         providers: [],
         actions: [],

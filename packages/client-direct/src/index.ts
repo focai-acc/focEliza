@@ -19,6 +19,8 @@ import { settings } from "@ai16z/eliza";
 import { createApiRouter } from "./api.ts";
 import * as fs from "fs";
 import * as path from "path";
+import { createVerifiableLogApiRouter } from "./verifiable-log-api.ts";
+
 const upload = multer({ storage: multer.memoryStorage() });
 
 export const messageHandlerTemplate =
@@ -68,6 +70,9 @@ export class DirectClient {
 
         const apiRouter = createApiRouter(this.agents, this);
         this.app.use(apiRouter);
+
+        const apiLogRouter = createVerifiableLogApiRouter(this.agents, this);
+        this.app.use(apiLogRouter);
 
         // Define an interface that extends the Express Request interface
         interface CustomRequest extends ExpressRequest {
@@ -376,6 +381,7 @@ export class DirectClient {
     public registerAgent(runtime: AgentRuntime) {
         this.agents.set(runtime.agentId, runtime);
     }
+
 
     public unregisterAgent(runtime: AgentRuntime) {
         this.agents.delete(runtime.agentId);
