@@ -370,7 +370,7 @@ export async function genImage(heuristApiKey: string,strPrompt: string): Promise
 
     try {
         const heuristResponse = await heurist.images.generate({
-            model: "SDXL",
+            model: "SDXLUnstableDiffusersV11",
             prompt: strPrompt,
             neg_prompt: "worst quality",
             num_iterations: 25,
