@@ -184,18 +184,29 @@ export async function sendTweet(
             inReplyText &&
             keywords.some(keyword => inReplyText.includes(keyword))
         ) {
-            elizaLogger.info("===start genImage:", content.text);
-            const apiKey = this.runtime.getSetting("HEURIST_API_KEY");
-            const imageData = await genImage(apiKey,content.text);
-            elizaLogger.info("==end genImage:", imageData);
+            try {
+                elizaLogger.info("===start genImage:", content.text);
+                const apiKey = this.runtime.getSetting("HEURIST_API_KEY");
+                const imageData = await genImage(apiKey, content.text);
+                elizaLogger.info("==end genImage:", imageData);
 
-            if (imageData) {
+                if (imageData) {
+                    result = await client.requestQueue.add(
+                        async () =>
+                            await client.twitterClient.sendTweet(
+                                chunk.trim(),
+                                previousTweetId,
+                                imageData
+                            )
+                    );
+                }
+            }catch (e) {
+                elizaLogger.error("Error genImage:", e);
                 result = await client.requestQueue.add(
                     async () =>
                         await client.twitterClient.sendTweet(
                             chunk.trim(),
-                            previousTweetId,
-                            imageData
+                            previousTweetId
                         )
                 );
             }

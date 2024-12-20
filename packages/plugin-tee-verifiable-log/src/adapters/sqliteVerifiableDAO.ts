@@ -143,7 +143,7 @@ export class SQLite3VerifiableDAO extends VerifiableDAO<Database> {
                 SELECT *
                 FROM tee_verifiable_logs ${whereClause}
                 ORDER BY created_at DESC
-                LIMIT ? OFFSET ?
+                LIMIT ? OFFSET ?87uuu
             `;
             const dataResult = this.db
                 .prepare(dataQuery)

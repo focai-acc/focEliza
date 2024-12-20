@@ -195,16 +195,24 @@ export class TwitterPostClient {
 
                 // check whether the probability of 1 9 is met
                 if (randomNumber <= 100) {
-                    const apiKey = this.runtime.getSetting("HEURIST_API_KEY");
-                    const imgData = await genImage(apiKey, content);
-                    result = await this.client.requestQueue.add(
-                        async () =>
-                            await this.client.twitterClient.sendTweet(
-                                content,
-                                undefined,
-                                imgData
-                            )
-                    );
+                    try {
+                        const apiKey = this.runtime.getSetting("HEURIST_API_KEY");
+                        const imgData = await genImage(apiKey, content);
+                        result = await this.client.requestQueue.add(
+                            async () =>
+                                await this.client.twitterClient.sendTweet(
+                                    content,
+                                    undefined,
+                                    imgData
+                                )
+                        );
+                    } catch (error) {
+                        console.error("Error sending tweet with img; Bad response:", error);
+                        result = await this.client.requestQueue.add(
+                            async () =>
+                                await this.client.twitterClient.sendTweet(content)
+                        );
+                    }
                 } else {
                     result = await this.client.requestQueue.add(
                         async () =>
@@ -272,6 +280,22 @@ export class TwitterPostClient {
                     embedding: getEmbeddingZeroVector(),
                     createdAt: tweet.timestamp,
                 });
+                const postCtx = JSON.stringify({
+                    text: newTweetContent.trim(),
+                    url: tweet.permanentUrl,
+                });
+                await this.runtime
+                    .getService<VerifiableLogService>(
+                        ServiceType.VERIFIABLE_LOGGING
+                    )
+                    .log({
+                        agentId: this.runtime.agentId,
+                        roomId,
+                        userId: this.runtime.agentId,
+                        type: "post tweet",
+                        content: postCtx,
+                    });
+
                 const postCtx = JSON.stringify({
                     text: newTweetContent.trim(),
                     url: tweet.permanentUrl,
