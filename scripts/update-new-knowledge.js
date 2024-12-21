@@ -17,12 +17,12 @@ async function fetchAndFormatData() {
         // 检查和提取目标字段
         if (data && data.data && Array.isArray(data.data.arr_news)) {
             const formattedData = data.data.arr_news.map(news =>
-                `odaily news: ${news.title} - ${news.link}`
+                `news: ${news.title} - ${news.link}`
             );
             // 过滤掉 knowledge 中以 "odaily news:" 开头的记录
             if (characterData.knowledge && Array.isArray(characterData.knowledge)) {
                 characterData.knowledge = characterData.knowledge.filter(
-                    item => !item.startsWith('odaily news:')
+                    item => !item.startsWith('news:')
                 );
             }
             // 将 formattedData 写入到 knowledge 中
