@@ -3,6 +3,7 @@ import elizaLogger from "./logger.ts";
 import {
     IAgentRuntime,
     IMemoryManager,
+    BlockStoreMsgType,
     type Memory,
     type UUID,
 } from "./types.ts";
@@ -187,6 +188,16 @@ export class MemoryManager implements IMemoryManager {
             this.tableName,
             unique
         );
+
+        // TODO filter for restore, store prev idx
+        // const prev = "";
+        // const blobUtil = new BlobUtil(this.runtime.blockAdapter);
+        // const blobData = JSON.stringify(memory);
+        // const blob = BlobUtil.composeBlob(prev, MsgType.memory, blobData);
+        // if (!await blobUtil.submitBlob(blob)) {
+        //     elizaLogger.error("Submit memory failed", memory.id, memory.content.text);
+        // }
+        this.runtime.blockStoreAdapter.push(memory)
     }
 
     async getMemoriesByRoomIds(params: { roomIds: UUID[] }): Promise<Memory[]> {

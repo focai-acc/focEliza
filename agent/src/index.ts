@@ -15,12 +15,14 @@ import {
     ICacheManager,
     IDatabaseAdapter,
     IDatabaseCacheAdapter,
+    IBlockStoreAdapter,
     ModelProviderName,
     defaultCharacter,
     elizaLogger,
     settings,
     stringToUuid,
     validateCharacterConfig,
+    BlockStoreMsgType,
 } from "@ai16z/eliza";
 import { zgPlugin } from "@ai16z/plugin-0g";
 import { goatPlugin } from "@ai16z/plugin-goat";
@@ -45,6 +47,10 @@ import path from "path";
 import readline from "readline";
 import { fileURLToPath } from "url";
 import yargs from "yargs";
+import {
+    createBlockStoreAdapter,
+    BlockStoreUtil,
+} from "@ai16z/adapter-blockchain";
 
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename); // get the name of the directory
@@ -342,6 +348,7 @@ let nodePlugin: any | undefined;
 export function createAgent(
     character: Character,
     db: IDatabaseAdapter,
+    blockStoreAdapter: IBlockStoreAdapter,
     cache: ICacheManager,
     token: string
 ) {
@@ -355,6 +362,7 @@ export function createAgent(
 
     return new AgentRuntime({
         databaseAdapter: db,
+        blockStoreAdapter: blockStoreAdapter,
         token,
         modelProvider: character.modelProvider,
         evaluators: [],
@@ -415,7 +423,20 @@ function intializeDbCache(character: Character, db: IDatabaseCacheAdapter) {
     return cache;
 }
 
+function initalizeBlockStoreAdapter(character: Character) {
+    const privKey = process.env.BlockStoreKey;
+    return createBlockStoreAdapter(character, privKey);
+}
+
 async function startAgent(character: Character, directClient) {
+    const blockStoreAdapter = initalizeBlockStoreAdapter(character);
+    if (process.env.BLOCKSTORE_RECOVERY) {
+        const bsUtil = new BlockStoreUtil(character.name, blockStoreAdapter);
+        character = await bsUtil.restoreCharacter(character);
+    } else if (process.env.BLOCKSTORE_STORE) {
+        blockStoreAdapter.push(character);
+    }
+
     let db: IDatabaseAdapter & IDatabaseCacheAdapter;
     try {
         character.id ??= stringToUuid(character.name);
@@ -433,8 +454,13 @@ async function startAgent(character: Character, directClient) {
 
         await db.init();
 
+        if (process.env.BLOCKSTORE_RECOVERY) {
+            const bsUtil = new BlockStoreUtil(character.name, blockStoreAdapter, db);
+            await bsUtil.restoreMemory();
+        }
+
         const cache = intializeDbCache(character, db);
-        const runtime = createAgent(character, db, cache, token);
+        const runtime = createAgent(character, db, blockStoreAdapter, cache, token);
 
         await runtime.initialize();
 
