@@ -733,21 +733,14 @@ export type Character = {
 };
 
 /**
- * Interface for block store
+ * Interface for block store queue
  */
 export type IBlockStoreAdapter = {
     /**
-     * Fetches the value associated with the specified key from the store.
-     * @param idx - The unique identifier for the value to retrieve.
-     * @returns A promise that resolves with the retrieved value.
-     */
-    pull: <T>(idx: string) => Promise<T>;
-    /**
      * Stores a value in the store with an automatically generated key.
      * @param value - The value to store.
-     * @returns A promise that resolves with the generated key for the stored value.
      */
-    push: <T>(value: T) => Promise<string>;
+    enqueue: <T>(msgType: BlockStoreMsgType, msg: T) => Promise<void>;
 };
 
 // Define the enum for blob message types

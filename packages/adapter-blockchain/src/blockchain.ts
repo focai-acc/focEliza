@@ -1,11 +1,11 @@
 import {
-    IBlockStoreAdapter,
     Character,
     Memory,
  } from "@ai16z/eliza";
+ import { IBlockchain } from "./types";
 
- export class BaseStoreAdapter implements IBlockStoreAdapter {
-    constructor(character: Character, privateKey: string) {
+ export class BaseStoreAdapter implements IBlockchain {
+    constructor() {
       // get url from character
       // get private key from env
     }
@@ -20,8 +20,8 @@ import {
     }
   }
 
-export class EVMStoreAdapter implements IBlockStoreAdapter {
-  constructor(character: Character, privateKey: string) {
+export class EVMStoreAdapter implements IBlockchain {
+  constructor() {
     // get url from character
     // get private key from env
   }
@@ -36,8 +36,8 @@ export class EVMStoreAdapter implements IBlockStoreAdapter {
   }
 }
 
-export class CelestiaStoreAdapter implements IBlockStoreAdapter {
-    constructor(character: Character, privateKey: string) {
+export class CelestiaStoreAdapter implements IBlockchain {
+    constructor() {
       // get url from character
       // get private key from env
     }
@@ -51,21 +51,17 @@ export class CelestiaStoreAdapter implements IBlockStoreAdapter {
     }
 }
 
-export function createBlockStoreAdapter(
-    character: Character,
-    privateKey: string
-  ): IBlockStoreAdapter {
-    let key = "evm"; // DEFAULT to evm
-    // read key from character.blockStore
-
-    switch (key) {
+export function createBlockchain(
+    chain: string|undefined,
+  ): IBlockchain {
+    switch (chain) {
       case "evm":
-        return new EVMStoreAdapter(character, privateKey);
+        return new EVMStoreAdapter();
       case "celestia":
-        return new CelestiaStoreAdapter(character, privateKey);
+        return new CelestiaStoreAdapter();
       case "base":
-        return new BaseStoreAdapter(character, privateKey);
+        return new BaseStoreAdapter();
       default:
-        throw new Error(`Unknown store key: ${key}`);
+        throw new Error(`Unknown store key: ${chain}`);
     }
 }

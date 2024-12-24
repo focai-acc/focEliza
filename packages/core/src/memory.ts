@@ -197,7 +197,7 @@ export class MemoryManager implements IMemoryManager {
         // if (!await blobUtil.submitBlob(blob)) {
         //     elizaLogger.error("Submit memory failed", memory.id, memory.content.text);
         // }
-        this.runtime.blockStoreAdapter.push(memory)
+        this.runtime.blockStoreAdapter.enqueue(BlockStoreMsgType.memory, memory)
     }
 
     async getMemoriesByRoomIds(params: { roomIds: UUID[] }): Promise<Memory[]> {

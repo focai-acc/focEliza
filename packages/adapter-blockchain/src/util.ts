@@ -1,7 +1,7 @@
-import { BlobHeader } from "./types";
+import { BlobHeader, IBlockchain } from "./types";
 import { Registry } from "./registry";
+import { createBlockchain } from "./blockchain";
 import {
-    IBlockStoreAdapter,
     BlockStoreMsgType,
     IDatabaseAdapter,
     Character,
@@ -10,17 +10,17 @@ import {
  } from "@ai16z/eliza";
 
 export class BlockStoreUtil {
-    private blockStoreAdapter: IBlockStoreAdapter;
+    private blockChain: IBlockchain;
     private database?: IDatabaseAdapter;
     private id: string;
 
-    constructor(id: string, blockStoreAdapter: IBlockStoreAdapter, database?: IDatabaseAdapter) {
+    constructor(id: string, database?: IDatabaseAdapter) {
         if (id == "") {
             throw new Error("id cannot be empty");
         }
         this.id = id;
-        this.blockStoreAdapter = blockStoreAdapter;
         this.database = database;
+        this.blockChain = createBlockchain(process.env.BLOCKSTORE_CHAIN);
     }
 
     async restoreMemory() {
@@ -33,7 +33,7 @@ export class BlockStoreUtil {
         // loop all the blobs via prev, but the first
         for (let i = headers.length - 2; i >= 0; i--) {
             const header = headers[i];
-            const blob = await this.blockStoreAdapter.pull<string>(header.prev);
+            const blob = await this.blockChain.pull<string>(header.prev);
             const {msgType, message} = await BlobUtil.decomposeBlob(blob);
             switch (msgType) {
                 case BlockStoreMsgType.memory: {
@@ -58,7 +58,7 @@ export class BlockStoreUtil {
 
         // restore character
         const characterHeader = headers[headers.length - 2];
-        const blob = await this.blockStoreAdapter.pull<string>(characterHeader.prev);
+        const blob = await this.blockChain.pull<string>(characterHeader.prev);
         const {msgType, message} = BlobUtil.decomposeBlob(blob);
         if (msgType != BlockStoreMsgType.character) {
             throw new Error("character data of blob is not valid");
@@ -85,7 +85,7 @@ export class BlockStoreUtil {
 
         try {
             while(true) {
-                const blobData = await this.blockStoreAdapter.pull<string>(prev);
+                const blobData = await this.blockChain.pull<string>(prev);
                 // read idx from value
                 if (blobData) {
                     ({ prev, msgType } = BlobUtil.decomposeBlob(blobData));

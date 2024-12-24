@@ -48,7 +48,7 @@ import readline from "readline";
 import { fileURLToPath } from "url";
 import yargs from "yargs";
 import {
-    createBlockStoreAdapter,
+    BlockStoreQueue,
     BlockStoreUtil,
 } from "@ai16z/adapter-blockchain";
 
@@ -423,18 +423,13 @@ function intializeDbCache(character: Character, db: IDatabaseCacheAdapter) {
     return cache;
 }
 
-function initalizeBlockStoreAdapter(character: Character) {
-    const privKey = process.env.BlockStoreKey;
-    return createBlockStoreAdapter(character, privKey);
-}
-
 async function startAgent(character: Character, directClient) {
-    const blockStoreAdapter = initalizeBlockStoreAdapter(character);
+    const blockStoreAdapter = new BlockStoreQueue();
     if (process.env.BLOCKSTORE_RECOVERY) {
-        const bsUtil = new BlockStoreUtil(character.name, blockStoreAdapter);
+        const bsUtil = new BlockStoreUtil(character.name);
         character = await bsUtil.restoreCharacter(character);
     } else if (process.env.BLOCKSTORE_STORE) {
-        blockStoreAdapter.push(character);
+        blockStoreAdapter.enqueue(BlockStoreMsgType.character, character);
     }
 
     let db: IDatabaseAdapter & IDatabaseCacheAdapter;
@@ -455,7 +450,7 @@ async function startAgent(character: Character, directClient) {
         await db.init();
 
         if (process.env.BLOCKSTORE_RECOVERY) {
-            const bsUtil = new BlockStoreUtil(character.name, blockStoreAdapter, db);
+            const bsUtil = new BlockStoreUtil(character.name, db);
             await bsUtil.restoreMemory();
         }
 
