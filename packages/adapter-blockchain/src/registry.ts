@@ -1,11 +1,30 @@
-// import Web3 from 'web3';
+import Web3 from 'web3';
+import { RegistryABI } from './contract';
+import { elizaLogger } from '@ai16z/eliza';
 
 export class Registry {
-    private contractAddress = "0x443744dd3cc33abc39d764b45b3ba256c4d2fa61";
-    private RPC = "http://localhost:8545";
+    private web3;
+    private contract;
+    private account;
 
     constructor() {
+        const contractAddress = process.env.BLOCKSTORE_REGISTRY_ADDR;
+        const url = process.env.BLOCKSTORE_REGISTRY_URL;
+        const privKey = process.env.PRIVATEKEY;
 
+        if (!contractAddress || url || privKey) {
+            throw new Error("blockstore configure is not correct");
+        }
+
+        const web3 = new Web3(url);
+        const key: string = privKey || "";
+        const account = web3.eth.accounts.privateKeyToAccount(key);
+        web3.eth.accounts.wallet.add(account);
+        web3.eth.defaultAccount = account.address;
+        this.account = account;
+        this.web3 = web3;
+
+        this.contract = new web3.eth.Contract(RegistryABI, contractAddress);
     }
 
     /**
@@ -15,13 +34,11 @@ export class Registry {
    */
     async getHash(key: string): Promise<string> {
         try {
-            // const web3 = new Web3(new Web3.providers.HttpProvider(this.RPC));
-            // const hash = await this.contract.methods.getHash(key).call();
-            // return hash;
-            return ""
+            const hash = await this.contract.methods.getHash(key).call();
+            return hash;
         } catch (error) {
-            console.error("Error fetching hash:", error);
-            throw error;
+            elizaLogger.error("Error during getHash:", error);
+            return "";
         }
     }
 
@@ -31,14 +48,13 @@ export class Registry {
    * @param hash The hash value to associate with the key.
    * @param from The sender's address.
    */
-  async registerOrUpdate(key: string, hash: string): Promise<void> {
+  async registerOrUpdate(key: string, hash: string): Promise<boolean> {
     try {
-        // const gas = await this.contract.methods.registerOrUpdate(key, hash).estimateGas({ from });
-        // await this.contract.methods.registerOrUpdate(key, hash).send({ from, gas });
-        // console.log("Successfully registered or updated key:", key);
+        const tx = await this.contract.methods.registerOrUpdate(key, hash).send({ from: this.account.address });
+        return true;
     } catch (error) {
-        console.error("Error registering or updating key:", error);
-        throw error;
+        elizaLogger.error("Error during registerOrUpdate", error);
+        return false;
     }
   }
 }

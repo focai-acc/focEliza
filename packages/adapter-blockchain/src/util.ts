@@ -28,7 +28,7 @@ export class BlockStoreUtil {
             throw new Error("database is not valid");
         }
 
-        const headers = await this.getAllBlobHeaders()
+        const headers = await this.getAllBlobHeaders();
 
         // loop all the blobs via prev, but the first
         for (let i = headers.length - 2; i >= 0; i--) {
@@ -50,31 +50,21 @@ export class BlockStoreUtil {
     }
 
     async restoreCharacter(character: Character): Promise<Character> {
-        const headers = await this.getAllBlobHeaders()
+        const headers = await this.getAllBlobHeaders();
 
         if (headers.length < 2) {
-            // store the character
-            const blob = BlobUtil.composeBlob(JSON.stringify(character), BlockStoreMsgType.character, "")
-            this.blockStoreAdapter.push(blob).then((result) => {
-                // updateIdx(result);
-            })
-            .catch((error) => {
-                elizaLogger.error(
-                    `Error pushing to chain ${blob}:`,
-                    error
-                );
-            })
-        } else {
-            // restore character
-            const characterHeader = headers[headers.length - 2];
-            const blob = await this.blockStoreAdapter.pull<string>(characterHeader.prev);
-            const {msgType, message} = BlobUtil.decomposeBlob(blob);
-            if (msgType != BlockStoreMsgType.character) {
-                throw new Error("character data of blob is not valid");
-            }
-            // reset the character from the stored data
-            character = JSON.parse(message);
+            throw new Error("character not found");
         }
+
+        // restore character
+        const characterHeader = headers[headers.length - 2];
+        const blob = await this.blockStoreAdapter.pull<string>(characterHeader.prev);
+        const {msgType, message} = BlobUtil.decomposeBlob(blob);
+        if (msgType != BlockStoreMsgType.character) {
+            throw new Error("character data of blob is not valid");
+        }
+        // reset the character from the stored data
+        character = JSON.parse(message);
 
         return character;
     }
