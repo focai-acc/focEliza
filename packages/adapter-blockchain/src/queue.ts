@@ -6,15 +6,20 @@ import {
 } from '@ai16z/eliza';
 import { IBlockchain } from './types';
 import { createBlockchain } from "./blockchain";
+import { Registry } from './registry';
 
 export class BlockStoreQueue implements IBlockStoreAdapter {
     private queue;
     private isProcessing: boolean = false;
     private blockChain: IBlockchain;
+    private registry: Registry;
+    private id: string;
 
-    constructor() {
+    constructor(id: string) {
         this.queue = new Queue({ concurrency: 1 });
         this.blockChain = createBlockchain(process.env.BLOCKSTORE_CHAIN);
+        this.registry = new Registry();
+        this.id = id;
 
         this.startProcessing();
     }
@@ -54,9 +59,12 @@ export class BlockStoreQueue implements IBlockStoreAdapter {
     }
 
     private async processTask<T>(msgType: BlockStoreMsgType, msg: T): Promise<void> {
-            return new Promise((resolve) => {
-            // marshal server messages, submit to block chain
-            console.log("----------------------------process on chain task...", msgType, msg);
-        });
+        // get last idx
+        // const idx = await this.registry.getHash(this.id);
+
+        // marshal server messages, submit to block chain
+        console.log("----------------------------process on chain task...", msgType, msg);
+        // update idx
+        // this.registry.registerOrUpdate();
     }
 }

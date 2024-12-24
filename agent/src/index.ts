@@ -424,18 +424,18 @@ function intializeDbCache(character: Character, db: IDatabaseCacheAdapter) {
 }
 
 async function startAgent(character: Character, directClient) {
-    const blockStoreAdapter = new BlockStoreQueue();
-    if (process.env.BLOCKSTORE_RECOVERY) {
-        const bsUtil = new BlockStoreUtil(character.name);
-        character = await bsUtil.restoreCharacter(character);
-    } else if (process.env.BLOCKSTORE_STORE) {
-        blockStoreAdapter.enqueue(BlockStoreMsgType.character, character);
-    }
-
     let db: IDatabaseAdapter & IDatabaseCacheAdapter;
     try {
         character.id ??= stringToUuid(character.name);
         character.username ??= character.name;
+
+        const blockStoreAdapter = new BlockStoreQueue(character.id);
+        if (process.env.BLOCKSTORE_RECOVERY == "true") {
+            const bsUtil = new BlockStoreUtil(character.name);
+            character = await bsUtil.restoreCharacter(character);
+        } else if (process.env.BLOCKSTORE_STORE == "true") {
+            blockStoreAdapter.enqueue(BlockStoreMsgType.character, character);
+        }
 
         const token = getTokenForProvider(character.modelProvider, character);
         const dataDir = path.join(__dirname, "../data");
@@ -449,7 +449,7 @@ async function startAgent(character: Character, directClient) {
 
         await db.init();
 
-        if (process.env.BLOCKSTORE_RECOVERY) {
+        if (process.env.BLOCKSTORE_RECOVERY == "true") {
             const bsUtil = new BlockStoreUtil(character.name, db);
             await bsUtil.restoreMemory();
         }
