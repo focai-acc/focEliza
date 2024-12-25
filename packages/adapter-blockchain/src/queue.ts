@@ -15,6 +15,11 @@ export class BlockStoreQueue implements IBlockStoreAdapter {
     private registry: Registry;
     private id: string;
 
+    private buffer: { msgType: BlockStoreMsgType; msg: any }[] = [];
+    private bufferLimit: number = 10;
+    private timeout: number = 10000;
+    private timeoutHandle: NodeJS.Timeout | null = null;
+
     constructor(id: string) {
         this.queue = new Queue({ concurrency: 1 });
         this.blockChain = createBlockchain(process.env.BLOCKSTORE_CHAIN);
@@ -25,17 +30,42 @@ export class BlockStoreQueue implements IBlockStoreAdapter {
     }
 
     async enqueue<T>(msgType: BlockStoreMsgType, msg: T): Promise<void> {
+        this.buffer.push({ msgType, msg });
+
+        if (this.buffer.length >= this.bufferLimit) {
+            this.flushBuffer();
+        } else if (!this.timeoutHandle) {
+            this.timeoutHandle = setTimeout(() => this.flushBuffer(), this.timeout);
+        }
+    }
+
+    private flushBuffer(): void {
+        if (this.timeoutHandle) {
+            clearTimeout(this.timeoutHandle);
+            this.timeoutHandle = null;
+        }
+
+        if (this.buffer.length === 0) return;
+
+        const tasks = this.buffer.slice();
+        this.buffer = [];
+
         const task = async () => {
-            elizaLogger.debug(`Processing task: ${BlockStoreMsgType[msgType]}, Message:`, msg);
-            await this.processTask(msgType, msg);
-            elizaLogger.debug(`Task completed: ${BlockStoreMsgType[msgType]}`);
-          };
+            try {
+                elizaLogger.debug(`Processing batch task with ${tasks.length} messages.`);
+                await this.processBatchTask(tasks);
+                elizaLogger.debug(`Batch task completed.`);
+            } catch (err) {
+                elizaLogger.error('Batch task failed, re-queuing messages:', err);
+                tasks.forEach(({ msgType, msg }) => this.enqueue(msgType, msg));
+            }
+        };
 
-          this.queue.push(task);
+        this.queue.push(task);
 
-          if (!this.isProcessing) {
+        if (!this.isProcessing) {
             this.startProcessing();
-          }
+        }
     }
 
     private async startProcessing(): Promise<void> {
@@ -43,40 +73,39 @@ export class BlockStoreQueue implements IBlockStoreAdapter {
         this.isProcessing = true;
 
         while (this.queue.length > 0 || this.queue.pending > 0) {
-          await new Promise<void>((resolve, reject) => {
-            this.queue.start((err) => {
-              if (err) {
-                elizaLogger.error('Error processing queue:', err);
-                reject(err);
-              } else {
-                resolve();
-              }
+            await new Promise<void>((resolve, reject) => {
+                this.queue.start((err) => {
+                    if (err) {
+                        elizaLogger.error('Error processing queue:', err);
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                });
             });
-          });
         }
 
         this.isProcessing = false;
     }
 
-    private async processTask<T>(msgType: BlockStoreMsgType, msg: T): Promise<void> {
+    private async processBatchTask(tasks: { msgType: BlockStoreMsgType; msg: any }[]): Promise<void> {
         // get last idx
         const idx = await this.registry.getValue(this.id);
 
-        // marshal server messages, submit to block chain
-        const jsonMsg = JSON.stringify(msg).trim();
+        // marshal the messages
+        const blob = tasks.map(({ msgType, msg }) => ({
+            msgType,
+            data: JSON.stringify(msg).trim(),
+        }));
+
         const message: Message = {
             prev: idx,
-            blob: [
-              {
-                msgType: msgType,
-                data: jsonMsg,
-              }
-            ],
+            blob: blob,
         };
 
         const uIdx = await this.blockChain.push(JSON.stringify(message).trim());
 
         // update idx
-        this.registry.registerOrUpdate(this.id, uIdx);
+        await this.registry.registerOrUpdate(this.id, uIdx);
     }
 }

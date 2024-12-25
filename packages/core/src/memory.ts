@@ -189,15 +189,9 @@ export class MemoryManager implements IMemoryManager {
             unique
         );
 
-        // TODO filter for restore, store prev idx
-        // const prev = "";
-        // const blobUtil = new BlobUtil(this.runtime.blockAdapter);
-        // const blobData = JSON.stringify(memory);
-        // const blob = BlobUtil.composeBlob(prev, MsgType.memory, blobData);
-        // if (!await blobUtil.submitBlob(blob)) {
-        //     elizaLogger.error("Submit memory failed", memory.id, memory.content.text);
-        // }
-        this.runtime.blockStoreAdapter.enqueue(BlockStoreMsgType.memory, memory)
+        if (process.env.BLOCKSTORE_STORE == "true") {
+            this.runtime.blockStoreAdapter.enqueue(BlockStoreMsgType.memory, memory);
+        }
     }
 
     async getMemoriesByRoomIds(params: { roomIds: UUID[] }): Promise<Memory[]> {

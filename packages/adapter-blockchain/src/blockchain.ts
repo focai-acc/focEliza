@@ -53,8 +53,8 @@ import {
             let tx = {
                 from: this.account.address,
                 to: this.account.address,
-                value: this.web3.utils.toWei(0, 'ether'),
-                data: "0x" + hexData,
+                value: this.web3.utils.toWei('0', 'ether'),
+                data: '0x' + hexData,
                 gas: 0,
                 gasPrice: await this.web3.eth.getGasPrice(),
                 nonce: await this.web3.eth.getTransactionCount(this.account.address),
