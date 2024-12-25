@@ -3,7 +3,6 @@ import { RegistryABI } from './contract';
 import { elizaLogger } from '@ai16z/eliza';
 
 export class Registry {
-    private web3;
     private contract;
     private account;
 
@@ -22,7 +21,6 @@ export class Registry {
         web3.eth.accounts.wallet.add(account);
         web3.eth.defaultAccount = account.address;
         this.account = account;
-        this.web3 = web3;
 
         this.contract = new web3.eth.Contract(RegistryABI, contractAddress);
     }

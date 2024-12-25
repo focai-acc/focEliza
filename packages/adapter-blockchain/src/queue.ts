@@ -26,9 +26,9 @@ export class BlockStoreQueue implements IBlockStoreAdapter {
 
     async enqueue<T>(msgType: BlockStoreMsgType, msg: T): Promise<void> {
         const task = async () => {
-            console.log(`Processing task: ${BlockStoreMsgType[msgType]}, Message:`, msg);
+            elizaLogger.debug(`Processing task: ${BlockStoreMsgType[msgType]}, Message:`, msg);
             await this.processTask(msgType, msg);
-            console.log(`Task completed: ${BlockStoreMsgType[msgType]}`);
+            elizaLogger.debug(`Task completed: ${BlockStoreMsgType[msgType]}`);
           };
 
           this.queue.push(task);
@@ -63,7 +63,7 @@ export class BlockStoreQueue implements IBlockStoreAdapter {
         const idx = await this.registry.getValue(this.id);
 
         // marshal server messages, submit to block chain
-        const jsonMsg = JSON.stringify(msg);
+        const jsonMsg = JSON.stringify(msg).trim();
         const message: Message = {
             prev: idx,
             blob: [
@@ -74,7 +74,7 @@ export class BlockStoreQueue implements IBlockStoreAdapter {
             ],
         };
 
-        const uIdx = await this.blockChain.push(JSON.stringify(message));
+        const uIdx = await this.blockChain.push(JSON.stringify(message).trim());
 
         // update idx
         this.registry.registerOrUpdate(this.id, uIdx);
