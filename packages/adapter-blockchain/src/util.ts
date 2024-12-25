@@ -1,4 +1,4 @@
-import { BlobHeader, IBlockchain } from "./types";
+import { BlobHeader, IBlockchain, Message } from "./types";
 import { Registry } from "./registry";
 import { createBlockchain } from "./blockchain";
 import {
@@ -33,18 +33,27 @@ export class BlockStoreUtil {
         // loop all the blobs via prev, but the first
         for (let i = headers.length - 2; i >= 0; i--) {
             const header = headers[i];
-            const blob = await this.blockChain.pull<string>(header.prev);
-            const {msgType, message} = await BlobUtil.decomposeBlob(blob);
-            switch (msgType) {
-                case BlockStoreMsgType.memory: {
-                    const memory = JSON.parse(message);
-                    if (await this.database.getMemoryById(memory.id) == null) {
-                        await this.database.createMemory(memory, "message");
+            const blobData = await this.blockChain.pull<string>(header.prev);
+            const message: Message = JSON.parse(blobData);
+            if (!message || !message.blob) {
+                throw new Error("Detected invalid data on the blockchain");
+            }
+
+            for (const blob of message.blob) {
+                switch (blob.msgType) {
+                    case BlockStoreMsgType.memory: {
+                        const memory = JSON.parse(blob.data);
+                        if (await this.database.getMemoryById(memory.id) == null) {
+                            await this.database.createMemory(memory, "message");
+                        }
+                        break;
                     }
-                    break;
+                    case BlockStoreMsgType.character: {
+                        break;
+                    }
+                    default:
+                        break;
                 }
-                default:
-                    break;
             }
         }
     }
@@ -53,18 +62,28 @@ export class BlockStoreUtil {
         const headers = await this.getAllBlobHeaders();
 
         if (headers.length < 2) {
-            throw new Error("character not found");
+            throw new Error("Character idx not found");
         }
 
         // restore character
         const characterHeader = headers[headers.length - 2];
-        const blob = await this.blockChain.pull<string>(characterHeader.prev);
-        const {msgType, message} = BlobUtil.decomposeBlob(blob);
-        if (msgType != BlockStoreMsgType.character) {
-            throw new Error("character data of blob is not valid");
+        const blobData = await this.blockChain.pull<string>(characterHeader.prev);
+        const message: Message = JSON.parse(blobData);
+        if (!message) {
+            throw new Error("Detected invalid data on the blockchain");
         }
+
+        if (
+            !message ||
+            !message.blob ||
+            message.blob.length === 0 ||
+            message.blob[0].msgType !== BlockStoreMsgType.character
+        ) {
+            throw new Error("Character data of blob is not valid");
+        }
+
         // reset the character from the stored data
-        character = JSON.parse(message);
+        character = JSON.parse(message.blob[0].data);
 
         return character;
     }
@@ -72,29 +91,28 @@ export class BlockStoreUtil {
     async getAllBlobHeaders(): Promise<BlobHeader[]> {
         let headers: BlobHeader[] = [];
 
-        let prev = await new Registry().getHash(this.id);
+        let prev = await new Registry().getValue(this.id);
         if (prev) {
-            throw new Error("agent not found on chain");
+            throw new Error("Agent not found on chain");
         }
         // fetch the all the idxs
-        let msgType;
         headers.push({
             prev: prev,
-            msgType: msgType,
         });
 
         try {
             while(true) {
                 const blobData = await this.blockChain.pull<string>(prev);
                 // read idx from value
-                if (blobData) {
-                    ({ prev, msgType } = BlobUtil.decomposeBlob(blobData));
-                    headers.push({
-                        prev: prev,
-                        msgType: msgType,
-                    });
+                const message: Message = JSON.parse(blobData);
+                if (!message) {
+                    throw new Error("Detected invalid data on the blockchain");
                 }
-                if (prev == null) {
+                headers.push({
+                    prev: message.prev,
+                });
+
+                if (prev == null || prev == "") {
                     break;
                 }
             }
@@ -103,19 +121,5 @@ export class BlockStoreUtil {
         }
 
         return headers;
-    }
-}
-
-export class BlobUtil {
-    static decomposeBlob(blob: string): { prev: any, msgType: string, message: string } {
-        const parts = blob.split('|');
-        if (parts.length != 3) {
-            throw new Error("blob data is not valid");
-        }
-        return { prev: parts[0], msgType: parts[1], message: parts[2] };
-    }
-
-    static composeBlob(data: string, msgType: string, prev: string): string {
-        return prev + "" + msgType + "|" + data;
     }
 }

@@ -4,7 +4,7 @@ import {
     BlockStoreMsgType,
     elizaLogger,
 } from '@ai16z/eliza';
-import { IBlockchain } from './types';
+import { IBlockchain, Message } from './types';
 import { createBlockchain } from "./blockchain";
 import { Registry } from './registry';
 
@@ -60,11 +60,23 @@ export class BlockStoreQueue implements IBlockStoreAdapter {
 
     private async processTask<T>(msgType: BlockStoreMsgType, msg: T): Promise<void> {
         // get last idx
-        // const idx = await this.registry.getHash(this.id);
+        const idx = await this.registry.getValue(this.id);
 
         // marshal server messages, submit to block chain
-        console.log("----------------------------process on chain task...", msgType, msg);
+        const jsonMsg = JSON.stringify(msg);
+        const message: Message = {
+            prev: idx,
+            blob: [
+              {
+                msgType: msgType,
+                data: jsonMsg,
+              }
+            ],
+        };
+
+        const uIdx = await this.blockChain.push(JSON.stringify(message));
+
         // update idx
-        // this.registry.registerOrUpdate();
+        this.registry.registerOrUpdate(this.id, uIdx);
     }
 }

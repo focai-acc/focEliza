@@ -13,7 +13,7 @@ export class Registry {
         const privKey = process.env.BLOCKSTORE_PRIVATEKEY;
 
         if (!contractAddress || !url || !privKey) {
-            throw new Error("blockstore configure is not correct");
+            throw new Error("Block store registry configuration is incorrect.");
         }
 
         const web3 = new Web3(url);
@@ -28,29 +28,38 @@ export class Registry {
     }
 
     /**
-   * Get the hash for a given key from the contract.
-   * @param key The key to query.
-   * @returns The associated hash as a `bytes32`.
+   * Get the value for a given key from the contract.
+   * @param id The key to query.
+   * @returns The associated value of the key.
    */
-    async getHash(key: string): Promise<string> {
+    async getValue(id: string): Promise<string> {
+        if (id == "") {
+            return ""
+        }
+
         try {
-            const hash = await this.contract.methods.getHash(key).call();
-            return hash;
+            const idx = await this.contract.methods.getValue(id).call();
+            return idx;
         } catch (error) {
-            elizaLogger.error("Error during getHash:", error);
+            elizaLogger.error("Error during getValue:", error);
             return "";
         }
     }
 
   /**
    * Register or update a key-value pair in the contract.
-   * @param key The key to register or update.
-   * @param hash The hash value to associate with the key.
+   * @param id The key to register or update.
+   * @param idx The value to associate with the key.
    * @param from The sender's address.
    */
-  async registerOrUpdate(key: string, hash: string): Promise<boolean> {
+  async registerOrUpdate(id: string, idx: string): Promise<boolean> {
+    if (id == "") {
+        elizaLogger.error("Error during registerOrUpdate, id is empty");
+        return false
+    }
+
     try {
-        const tx = await this.contract.methods.registerOrUpdate(key, hash).send({ from: this.account.address });
+        const tx = await this.contract.methods.registerOrUpdate(id, idx).send({ from: this.account.address });
         return true;
     } catch (error) {
         elizaLogger.error("Error during registerOrUpdate", error);

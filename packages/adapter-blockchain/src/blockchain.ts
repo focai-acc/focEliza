@@ -3,11 +3,25 @@ import {
     Memory,
  } from "@ai16z/eliza";
  import { IBlockchain } from "./types";
+ import Web3 from 'web3';
 
  export class BaseStoreAdapter implements IBlockchain {
+    private account;
+
     constructor() {
-      // get url from character
-      // get private key from env
+        const url = process.env.BLOCKSTORE_REGISTRY_URL;
+        const privKey = process.env.BLOCKSTORE_PRIVATEKEY;
+
+        if (!url || !privKey) {
+            throw new Error("Base chain configuration is incorrect");
+        }
+
+        const web3 = new Web3(url);
+        const key: string = privKey || "";
+        const account = web3.eth.accounts.privateKeyToAccount(key);
+        web3.eth.accounts.wallet.add(account);
+        web3.eth.defaultAccount = account.address;
+        this.account = account;
     }
 
     async pull<T>(idx: string): Promise<T> {
@@ -16,7 +30,7 @@ import {
 
     async push<T>(blob: T): Promise<string> {
       // if (blob instanceof Memory)
-      return Promise.reject(new Error("Method 'pull' is not implemented yet."));
+      return Promise.reject(new Error("Method 'push' is not implemented yet."));
     }
   }
 
@@ -32,7 +46,7 @@ export class EVMStoreAdapter implements IBlockchain {
 
   async push<T>(blob: T): Promise<string> {
     // if (blob instanceof Memory)
-    return Promise.reject(new Error("Method 'pull' is not implemented yet."));
+    return Promise.reject(new Error("Method 'push' is not implemented yet."));
   }
 }
 
@@ -47,7 +61,7 @@ export class CelestiaStoreAdapter implements IBlockchain {
     }
 
     async push<T>(blob: T): Promise<string> {
-        return Promise.reject(new Error("Method 'pull' is not implemented yet."));
+        return Promise.reject(new Error("Method 'push' is not implemented yet."));
     }
 }
 

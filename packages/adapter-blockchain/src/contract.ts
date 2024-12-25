@@ -13,19 +13,6 @@ export const RegistryABI = [
         "type": "event"
     },
     {
-        "inputs": [
-            {
-                "internalType": "string",
-                "name": "key",
-                "type": "string"
-            }
-        ],
-        "name": "deleteKey",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
         "anonymous": false,
         "inputs": [
             {
@@ -60,10 +47,10 @@ export const RegistryABI = [
                 "type": "string"
             },
             {
-                "indexed": true,
-                "internalType": "bytes32",
-                "name": "hash",
-                "type": "bytes32"
+                "indexed": false,
+                "internalType": "string",
+                "name": "value",
+                "type": "string"
             },
             {
                 "indexed": true,
@@ -81,53 +68,11 @@ export const RegistryABI = [
                 "internalType": "string",
                 "name": "key",
                 "type": "string"
-            },
-            {
-                "internalType": "bytes32",
-                "name": "hash",
-                "type": "bytes32"
             }
         ],
-        "name": "registerOrUpdate",
+        "name": "deleteKey",
         "outputs": [],
         "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "string",
-                "name": "key",
-                "type": "string"
-            },
-            {
-                "internalType": "address",
-                "name": "newOwner",
-                "type": "address"
-            }
-        ],
-        "name": "transferOwnership",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "string",
-                "name": "key",
-                "type": "string"
-            }
-        ],
-        "name": "getHash",
-        "outputs": [
-            {
-                "internalType": "bytes32",
-                "name": "",
-                "type": "bytes32"
-            }
-        ],
-        "stateMutability": "view",
         "type": "function"
     },
     {
@@ -157,6 +102,25 @@ export const RegistryABI = [
                 "type": "string"
             }
         ],
+        "name": "getValue",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "string",
+                "name": "key",
+                "type": "string"
+            }
+        ],
         "name": "keyExists",
         "outputs": [
             {
@@ -166,6 +130,42 @@ export const RegistryABI = [
             }
         ],
         "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "string",
+                "name": "key",
+                "type": "string"
+            },
+            {
+                "internalType": "string",
+                "name": "value",
+                "type": "string"
+            }
+        ],
+        "name": "registerOrUpdate",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "string",
+                "name": "key",
+                "type": "string"
+            },
+            {
+                "internalType": "address",
+                "name": "newOwner",
+                "type": "address"
+            }
+        ],
+        "name": "transferOwnership",
+        "outputs": [],
+        "stateMutability": "nonpayable",
         "type": "function"
     }
 ];

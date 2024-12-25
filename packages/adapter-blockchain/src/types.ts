@@ -1,14 +1,33 @@
 import { BlockStoreMsgType } from "@ai16z/eliza";
 
 /**
- * Example header for demonstration
+ * Header for demonstration
  */
 export interface BlobHeader {
     /** Unique identifier */
     prev: any;
+}
 
-    /** Message type */
+/**
+ * Structure representing a single blob of data
+ */
+export interface BlobData {
+    /** Type of the message */
     msgType: BlockStoreMsgType;
+
+    /** Actual message data */
+    data: any;
+}
+
+/**
+ * Represents a complete message structure
+ */
+export interface Message {
+    /** Unique identifier for the message */
+    prev: string;
+
+    /** Array of blobs containing message data and type */
+    blob: BlobData[];
 }
 
 /**
