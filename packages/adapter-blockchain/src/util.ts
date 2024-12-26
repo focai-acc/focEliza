@@ -38,6 +38,7 @@ export class BlockStoreUtil {
             if (!message || !message.blob) {
                 throw new Error("Detected invalid data on the blockchain");
             }
+            elizaLogger.info(`Restore blob ${header.prev} from blockchain`);
 
             for (const blob of message.blob) {
                 switch (blob.msgType) {
@@ -84,6 +85,7 @@ export class BlockStoreUtil {
 
         // reset the character from the stored data
         character = JSON.parse(message.blob[0].data);
+        elizaLogger.info("Restore Character from blockchain");
 
         return character;
     }
@@ -92,8 +94,8 @@ export class BlockStoreUtil {
         let headers: BlobHeader[] = [];
 
         let prev = await new Registry().getValue(this.id);
-        if (prev) {
-            throw new Error("Agent not found on chain");
+        if (!prev || prev.trim() === "") {
+            throw new Error(`Agent id ${this.id} not found on chain`);
         }
         // fetch the all the idxs
         headers.push({
@@ -111,6 +113,7 @@ export class BlockStoreUtil {
                 headers.push({
                     prev: message.prev,
                 });
+                prev = message.prev;
 
                 if (prev == null || prev == "") {
                     break;

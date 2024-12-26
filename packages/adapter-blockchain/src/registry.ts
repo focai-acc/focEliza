@@ -9,7 +9,7 @@ export class Registry {
     constructor() {
         const contractAddress = process.env.BLOCKSTORE_REGISTRY_ADDR;
         const url = process.env.BLOCKSTORE_REGISTRY_URL;
-        const privKey = process.env.BLOCKSTORE_PRIVATEKEY;
+        const privKey = process.env.BLOCKSTORE_REGISTRY_PRIVATEKEY;
 
         if (!contractAddress || !url || !privKey) {
             throw new Error("Block store registry configuration is incorrect.");

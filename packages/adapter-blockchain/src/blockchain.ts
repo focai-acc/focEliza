@@ -11,8 +11,8 @@ import {
     private web3;
 
     constructor() {
-        const url = process.env.BLOCKSTORE_REGISTRY_URL;
-        const privKey = process.env.BLOCKSTORE_PRIVATEKEY;
+        const url = process.env.BLOCKSTORE_DATA_URL;
+        const privKey = process.env.BLOCKSTORE_DATA_PRIVATEKEY;
 
         if (!url || !privKey) {
             throw new Error("Base chain configuration is incorrect");
@@ -29,7 +29,7 @@ import {
 
     async pull<T>(idx: string): Promise<T> {
         if (!this.web3.utils.isHexStrict(idx)) {
-            throw new Error("Invalid transaction hash format");
+            throw new Error(`Invalid transaction hash format of ${idx}`);
         }
 
         const transaction = await this.web3.eth.getTransaction(idx);
@@ -37,12 +37,18 @@ import {
             throw new Error(`Get transaction of ${idx} failed`);
         }
 
-        const blobData = transaction.input;
-        if (!blobData || blobData === "0x") {
+        const data = transaction.data ?? '';
+        const blobHex = data.startsWith('0x') ? data.slice(2) : data;
+        if (!blobHex || blobHex === "") {
             throw new Error(`Transaction of ${idx} has no data`);
         }
 
-        return blobData;
+        try {
+            const blobData = Buffer.from(blobHex, 'hex').toString('utf8');
+            return blobData as T;
+        } catch (error) {
+            throw new Error(`Failed to decode data for transaction "${idx}": ${error}`);
+        }
     }
 
     async push<T>(blob: T): Promise<string> {
@@ -63,14 +69,17 @@ import {
             tx.gas = estimatedGas;
 
             const signedTx = await this.web3.eth.accounts.signTransaction(tx, this.account.privateKey);
-            await this.web3.eth.sendSignedTransaction(signedTx.rawTransaction)
+            const transactionHash = await new Promise<string>((resolve, reject) => {
+                this.web3.eth.sendSignedTransaction(signedTx.rawTransaction)
                 .on('receipt', receipt => {
-                    return receipt.transactionHash;
+                    resolve(receipt.transactionHash);
                 })
                 .on('error', error => {
                     elizaLogger.error("Send blob to blockchain failed", error);
-                    throw new Error('Transaction failed due to error: ' + error.message);
+                    reject(new Error('Transaction failed due to error: ' + error.message));
                 });
+            });
+            return transactionHash;
         } catch (error) {
             elizaLogger.error("Send blob to blockchain failed", error);
         }
@@ -79,19 +88,19 @@ import {
     }
 }
 
-export class EVMStoreAdapter implements IBlockchain {
+export class EthereumAdapter implements IBlockchain {
   constructor() {
     // get url from character
     // get private key from env
   }
 
   async pull<T>(idx: string): Promise<T> {
-    return Promise.reject(new Error("Method 'pull' is not implemented yet."));
+    return Promise.reject(new Error("Ethereum adapter method 'pull' is not implemented."));
   }
 
   async push<T>(blob: T): Promise<string> {
     // if (blob instanceof Memory)
-    return Promise.reject(new Error("Method 'push' is not implemented yet."));
+    return Promise.reject(new Error("Ethereum adapter method 'push' is not implemented."));
   }
 }
 
@@ -102,11 +111,11 @@ export class CelestiaStoreAdapter implements IBlockchain {
     }
 
     async pull<T>(idx: string): Promise<T> {
-        return Promise.reject(new Error("Method 'pull' is not implemented yet."));
+        return Promise.reject(new Error("Celestia adapter method 'pull' is not implemented."));
     }
 
     async push<T>(blob: T): Promise<string> {
-        return Promise.reject(new Error("Method 'push' is not implemented yet."));
+        return Promise.reject(new Error("Celestia adapter method 'push' is not implemented."));
     }
 }
 
@@ -114,13 +123,13 @@ export function createBlockchain(
     chain: string|undefined,
   ): IBlockchain {
     switch (chain) {
-      case "evm":
-        return new EVMStoreAdapter();
+      case "ethereum":
+        return new EthereumAdapter();
       case "celestia":
         return new CelestiaStoreAdapter();
       case "base":
         return new BaseStoreAdapter();
       default:
-        throw new Error(`Unknown store key: ${chain}`);
+        throw new Error(`Unknown blockchain adapter: ${chain}`);
     }
 }

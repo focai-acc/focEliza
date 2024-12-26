@@ -431,7 +431,7 @@ async function startAgent(character: Character, directClient) {
 
         const blockStoreAdapter = new BlockStoreQueue(character.id);
         if (process.env.BLOCKSTORE_RECOVERY == "true") {
-            const bsUtil = new BlockStoreUtil(character.name);
+            const bsUtil = new BlockStoreUtil(character.id);
             character = await bsUtil.restoreCharacter(character);
         } else if (process.env.BLOCKSTORE_STORE == "true") {
             blockStoreAdapter.enqueue(BlockStoreMsgType.character, character);
@@ -450,7 +450,7 @@ async function startAgent(character: Character, directClient) {
         await db.init();
 
         if (process.env.BLOCKSTORE_RECOVERY == "true") {
-            const bsUtil = new BlockStoreUtil(character.name, db);
+            const bsUtil = new BlockStoreUtil(character.id, db);
             await bsUtil.restoreMemory();
         }
 

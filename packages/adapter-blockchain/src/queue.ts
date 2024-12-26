@@ -106,6 +106,11 @@ export class BlockStoreQueue implements IBlockStoreAdapter {
         const uIdx = await this.blockChain.push(JSON.stringify(message).trim());
 
         // update idx
-        await this.registry.registerOrUpdate(this.id, uIdx);
+        const ret = await this.registry.registerOrUpdate(this.id, uIdx);
+        if (!ret) {
+            elizaLogger.error("Update registry failed");
+        } else {
+            elizaLogger.info(`Upload messages with idx ${uIdx} to blockchain`);
+        }
     }
 }
