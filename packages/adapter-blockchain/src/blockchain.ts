@@ -6,7 +6,7 @@ import {
  import { IBlockchain, Message } from "./types";
  import Web3 from 'web3';
 
- export class BaseStoreAdapter implements IBlockchain {
+ export class EvmCompatibleStoreAdapter implements IBlockchain {
     private account;
     private web3;
 
@@ -127,8 +127,8 @@ export function createBlockchain(
         return new EthereumAdapter();
       case "celestia":
         return new CelestiaStoreAdapter();
-      case "base":
-        return new BaseStoreAdapter();
+      case "evm":
+        return new EvmCompatibleStoreAdapter();
       default:
         throw new Error(`Unknown blockchain adapter: ${chain}`);
     }

@@ -89,11 +89,24 @@ export class BlockStoreQueue implements IBlockStoreAdapter {
     }
 
     private async processBatchTask(tasks: { msgType: BlockStoreMsgType; msg: any }[]): Promise<void> {
+        const characters = tasks
+            .filter(task => task.msgType == BlockStoreMsgType.character)
+            .map(task => task.msg);
+
+        if (characters.length > 0) {
+            // only update to latest character
+            const ret = await this.processCharacter(characters[characters.length-1]);
+            if (!ret) {
+                elizaLogger.error("Process character update failed");
+            }
+        }
+
+        const blobTasks = tasks.filter(task => task.msgType !== BlockStoreMsgType.character);
         // get last idx
-        const idx = await this.registry.getValue(this.id);
+        const idx = await this.registry.getBlobIdx(this.id);
 
         // marshal the messages
-        const blob = tasks.map(({ msgType, msg }) => ({
+        const blob = blobTasks.map(({ msgType, msg }) => ({
             msgType,
             data: JSON.stringify(msg).trim(),
         }));
@@ -106,11 +119,18 @@ export class BlockStoreQueue implements IBlockStoreAdapter {
         const uIdx = await this.blockChain.push(JSON.stringify(message).trim());
 
         // update idx
-        const ret = await this.registry.registerOrUpdate(this.id, uIdx);
+        const ret = await this.registry.updateOrRegisterBlobIdx(this.id, uIdx);
         if (!ret) {
-            elizaLogger.error("Update registry failed");
-        } else {
-            elizaLogger.info(`Upload messages with idx ${uIdx} to blockchain`);
+            elizaLogger.error("Update to blockchain failed");
         }
+    }
+
+    private async processCharacter(msg: any): Promise<boolean> {
+        // submit the character to blob
+        const characterData = JSON.stringify(msg).trim();
+        const idx = await this.blockChain.push(characterData);
+
+        // save the idx of character to registry
+        return await this.registry.updateOrRegisterCharacter(this.id, idx);
     }
 }

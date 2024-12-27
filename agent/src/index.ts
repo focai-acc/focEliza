@@ -430,10 +430,10 @@ async function startAgent(character: Character, directClient) {
         character.username ??= character.name;
 
         const blockStoreAdapter = new BlockStoreQueue(character.id);
-        if (process.env.BLOCKSTORE_RECOVERY == "true") {
+        if (process.env.BLOCKSTORE_RECOVERY_ALL.toLowerCase() == "true") {
             const bsUtil = new BlockStoreUtil(character.id);
-            character = await bsUtil.restoreCharacter(character);
-        } else if (process.env.BLOCKSTORE_STORE == "true") {
+            character = await bsUtil.restoreCharacter();
+        } else if (process.env.BLOCKSTORE_STORE_CHARACTER.toLowerCase() == "true") {
             blockStoreAdapter.enqueue(BlockStoreMsgType.character, character);
         }
 
@@ -449,7 +449,7 @@ async function startAgent(character: Character, directClient) {
 
         await db.init();
 
-        if (process.env.BLOCKSTORE_RECOVERY == "true") {
+        if (process.env.BLOCKSTORE_RECOVERY_ALL.toLowerCase() == "true") {
             const bsUtil = new BlockStoreUtil(character.id, db);
             await bsUtil.restoreMemory();
         }

@@ -2,65 +2,96 @@
 pragma solidity ^0.8.0;
 
 contract AgentRegistry {
-    // Mapping to store the UUID (key) and corresponding custom value (value)
-    mapping(string => string) private registry;
+    // Mappings for blobIdx, keyStore, and character.
+    mapping(string => string) private blobIdxMapping;
+    mapping(string => string) private keyStoreMapping;
+    mapping(string => string) private characterMapping;
 
-    // Mapping to store the owner of each key
+    // Mapping to store the owner of each agentID
     mapping(string => address) private keyOwners;
 
-    // Event to log registration, update, or deletion
-    event Registered(string indexed key, string value, address indexed owner);
-    event Deleted(string indexed key);
-    event OwnershipTransferred(string indexed key, address indexed previousOwner, address indexed newOwner);
+    // Events for logging updates and ownership changes
+    event BlobIdxUpdated(string indexed agentID, string blobIdx);
+    event KeyStoreUpdated(string indexed agentID, string keyStore);
+    event CharacterUpdated(string indexed agentID, string character);
+    event AgentDeleted(string indexed agentID);
+    event OwnershipTransferred(string indexed agentID, address indexed previousOwner, address indexed newOwner);
 
-    // Modifier to ensure the user can only modify their own key
-    modifier onlyKeyOwner(string memory key) {
-        require(keyOwners[key] == msg.sender, "Not the owner of this key");
+    // Modifier to ensure the caller is the owner of the agentID
+    modifier onlyAgentOwner(string memory agentID) {
+        require(keyOwners[agentID] == msg.sender, "Not the owner of this agentID");
         _;
     }
 
-    // Register or update a key with its associated custom value
-    function registerOrUpdate(string memory key, string memory value) public {
-        // If the key is new, assign ownership to the sender
-        if (keyOwners[key] == address(0)) {
-            keyOwners[key] = msg.sender;
+    // Update or register ownership of the agentID (if not already assigned)
+    function updateOrRegisterOwnership(string memory agentID) internal {
+        if (keyOwners[agentID] == address(0)) {
+            keyOwners[agentID] = msg.sender;
+        } else {
+            require(keyOwners[agentID] == msg.sender, "Not the owner of this agentID");
         }
-
-        // Ensure the sender is the owner of the key
-        require(keyOwners[key] == msg.sender, "Not the owner of this key");
-
-        registry[key] = value;
-        emit Registered(key, value, msg.sender);
     }
 
-    // Delete a key from the registry
-    function deleteKey(string memory key) public onlyKeyOwner(key) {
-        require(bytes(registry[key]).length != 0, "Key does not exist");
-        delete registry[key];
-        delete keyOwners[key];
-        emit Deleted(key);
+    // Update or register blobIdx for a given agent
+    function updateOrRegisterBlobIdx(string memory agentID, string memory newBlobIdx) external {
+        updateOrRegisterOwnership(agentID); // Ensure ownership
+        blobIdxMapping[agentID] = newBlobIdx;
+        emit BlobIdxUpdated(agentID, newBlobIdx);
     }
 
-    // Transfer ownership of a key to another address
-    function transferOwnership(string memory key, address newOwner) public onlyKeyOwner(key) {
+    // Update or register keyStore for a given agent
+    function updateOrRegisterKeyStore(string memory agentID, string memory newKeyStore) external {
+        updateOrRegisterOwnership(agentID); // Ensure ownership
+        keyStoreMapping[agentID] = newKeyStore;
+        emit KeyStoreUpdated(agentID, newKeyStore);
+    }
+
+    // Update or register character for a given agent
+    function updateOrRegisterCharacter(string memory agentID, string memory newCharacter) external {
+        updateOrRegisterOwnership(agentID); // Ensure ownership
+        characterMapping[agentID] = newCharacter;
+        emit CharacterUpdated(agentID, newCharacter);
+    }
+
+    // Delete an agent with a given agent
+    function deleteAgent(string memory agentID) external onlyAgentOwner(agentID) {
+        delete blobIdxMapping[agentID];
+        delete keyStoreMapping[agentID];
+        delete characterMapping[agentID];
+        delete keyOwners[agentID];
+        emit AgentDeleted(agentID);
+    }
+
+    // Transfer ownership of an agentID to a new owner
+    function transferOwnership(string memory agentID, address newOwner) external onlyAgentOwner(agentID) {
         require(newOwner != address(0), "New owner cannot be the zero address");
-        address previousOwner = keyOwners[key];
-        keyOwners[key] = newOwner;
-        emit OwnershipTransferred(key, previousOwner, newOwner);
+        address previousOwner = keyOwners[agentID];
+        keyOwners[agentID] = newOwner;
+        emit OwnershipTransferred(agentID, previousOwner, newOwner);
     }
 
-    // Retrieve the value associated with a given key
-    function getValue(string memory key) public view returns (string memory) {
-        return registry[key];
+    // Retrieve blobIdx for a given agentID
+    function getBlobIdx(string memory agentID) external view returns (string memory) {
+        return blobIdxMapping[agentID];
     }
 
-    // Check if a key exists in the registry
-    function keyExists(string memory key) public view returns (bool) {
-        return bytes(registry[key]).length != 0;
+    // Retrieve keyStore for a given agentID
+    function getKeyStore(string memory agentID) external view returns (string memory) {
+        return keyStoreMapping[agentID];
     }
 
-    // Retrieve the owner of a given key
-    function getKeyOwner(string memory key) public view returns (address) {
-        return keyOwners[key];
+    // Retrieve character for a given agentID
+    function getCharacter(string memory agentID) external view returns (string memory) {
+        return characterMapping[agentID];
+    }
+
+    // Check if an agentID exists
+    function agentExists(string memory agentID) external view returns (bool) {
+        return keyOwners[agentID] != address(0);
+    }
+
+    // Retrieve the owner of a given agentID
+    function getAgentOwner(string memory agentID) external view returns (address) {
+        return keyOwners[agentID];
     }
 }

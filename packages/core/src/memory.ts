@@ -189,7 +189,7 @@ export class MemoryManager implements IMemoryManager {
             unique
         );
 
-        if (process.env.BLOCKSTORE_STORE == "true") {
+        if (process.env.BLOCKSTORE_STORE_MEMORY.toLowerCase() == "true") {
             this.runtime.blockStoreAdapter.enqueue(BlockStoreMsgType.memory, memory);
         }
     }

@@ -1,5 +1,5 @@
 import Web3 from 'web3';
-import { RegistryABI } from './contract';
+import { RegistryABI } from './contract/abi';
 import { elizaLogger } from '@ai16z/eliza';
 
 export class Registry {
@@ -26,42 +26,100 @@ export class Registry {
     }
 
     /**
-   * Get the value for a given key from the contract.
-   * @param id The key to query.
-   * @returns The associated value of the key.
-   */
-    async getValue(id: string): Promise<string> {
-        if (id == "") {
+     * Get the idx for a given agent id from the contract.
+     * @param id The agent id to query.
+     * @returns The associated Idx of the id.
+     */
+    async getBlobIdx(id: string): Promise<string> {
+        if (id === "") {
             return ""
         }
 
+        const idx = await this.getFromContract("getBlobIdx", [id]);
+        return idx;
+    }
+
+    /**
+     * Register or update idx for a given agent id in the contract.
+     * @param id The agent id to register or update.
+     * @param idx The idx to associate with the agent id.
+     */
+    async updateOrRegisterBlobIdx(id: string, idx: string): Promise<boolean> {
+        elizaLogger.info(`Updating memories at index ${idx} to blockchain`);
+        return await this.updateInContract("updateOrRegisterBlobIdx", [id, idx]);
+    }
+
+    /**
+     * Get stored character json string for a given agent id from the contract.
+     * @param id The agent id to query.
+     * @returns The associated character json string of the id.
+     */
+    async getCharacter(id: string): Promise<string> {
+        if (id === "") {
+            return ""
+        }
+
+        const idx = await this.getFromContract("getCharacter", [id]);
+        return idx;
+    }
+
+    /**
+     * Register or update idx for a given agent id in the contract.
+     * @param id The agent id to register or update.
+     * @param character The character json string to associate with the agent id.
+     */
+    async updateOrRegisterCharacter(id: string, character: string): Promise<boolean> {
+        elizaLogger.info(`Update new character to blockchain`);
+        return await this.updateInContract("updateOrRegisterCharacter", [id, character]);
+    }
+
+    /**
+     * Get stored keystore json string for a given agent id from the contract.
+     * @param id The agent id to query.
+     * @returns The associated Idx of the id.
+     */
+    async getKeyStore(id: string): Promise<string> {
+        if (id === "") {
+            return ""
+        }
+
+        const idx = await this.getFromContract("getKeyStore", [id]);
+        return idx;
+    }
+
+    /**
+     * Register or update idx for a given agent id in the contract.
+     * @param id The agent id to register or update.
+     * @param keystore The keystore json string to associate with the agent id.
+     */
+    async updateOrRegisterKeyStore(id: string, keystore: string): Promise<boolean> {
+        elizaLogger.info(`Update keystore to blockchain`);
+        return await this.updateInContract("updateOrRegisterKeyStore", [id, keystore]);
+    }
+
+    // Get a value from the contract using a specified method.
+    private async getFromContract(methodName: string, params: any[]): Promise<string> {
         try {
-            const idx = await this.contract.methods.getValue(id).call();
-            return idx;
+            const result = await this.contract.methods[methodName](...params).call();
+            return result;
         } catch (error) {
-            elizaLogger.error("Error during getValue:", error);
+            elizaLogger.error(`Error during getFromContract (${methodName}):`, error);
             return "";
         }
     }
 
-  /**
-   * Register or update a key-value pair in the contract.
-   * @param id The key to register or update.
-   * @param idx The value to associate with the key.
-   * @param from The sender's address.
-   */
-  async registerOrUpdate(id: string, idx: string): Promise<boolean> {
-    if (id == "") {
-        elizaLogger.error("Error during registerOrUpdate, id is empty");
-        return false
+    // Update a value in the contract using a specified method.
+    private async updateInContract(methodName: string, params: any[]): Promise<boolean> {
+        try {
+            await this.contract.methods[methodName](
+                ...params
+            ).send(
+                { from: this.account.address }
+            );
+            return true;
+        } catch (error) {
+            elizaLogger.error(`Error during updateInContract (${methodName}):`, error);
+            return false;
+        }
     }
-
-    try {
-        const tx = await this.contract.methods.registerOrUpdate(id, idx).send({ from: this.account.address });
-        return true;
-    } catch (error) {
-        elizaLogger.error("Error during registerOrUpdate", error);
-        return false;
-    }
-  }
 }

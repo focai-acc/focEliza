@@ -15,12 +15,26 @@ export class BlockStoreUtil {
     private id: string;
 
     constructor(id: string, database?: IDatabaseAdapter) {
-        if (id == "") {
-            throw new Error("id cannot be empty");
+        if (id === "") {
+            throw new Error("Agent id cannot be empty");
         }
         this.id = id;
         this.database = database;
         this.blockChain = createBlockchain(process.env.BLOCKSTORE_CHAIN);
+    }
+
+    async restoreCharacter(): Promise<Character> {
+        const idx = (await new Registry().getCharacter(this.id)).trim();
+        if (idx === "") {
+            throw new Error(`Character data for agent id ${this.id} is not valid`);
+        }
+
+        const blobData = await this.blockChain.pull<string>(idx);
+
+        const character = JSON.parse(blobData.trim());
+        elizaLogger.info("Recovering Character from blockchain");
+
+        return character;
     }
 
     async restoreMemory() {
@@ -34,16 +48,16 @@ export class BlockStoreUtil {
         for (let i = headers.length - 2; i >= 0; i--) {
             const header = headers[i];
             const blobData = await this.blockChain.pull<string>(header.prev);
-            const message: Message = JSON.parse(blobData);
+            const message: Message = JSON.parse(blobData.trim());
             if (!message || !message.blob) {
                 throw new Error("Detected invalid data on the blockchain");
             }
-            elizaLogger.info(`Restore blob ${header.prev} from blockchain`);
+            elizaLogger.info(`Recovering memories at blob index ${header.prev} from blockchain`);
 
             for (const blob of message.blob) {
                 switch (blob.msgType) {
                     case BlockStoreMsgType.memory: {
-                        const memory = JSON.parse(blob.data);
+                        const memory = JSON.parse(blob.data.trim());
                         if (await this.database.getMemoryById(memory.id) == null) {
                             await this.database.createMemory(memory, "message");
                         }
@@ -59,41 +73,11 @@ export class BlockStoreUtil {
         }
     }
 
-    async restoreCharacter(character: Character): Promise<Character> {
-        const headers = await this.getAllBlobHeaders();
-
-        if (headers.length < 2) {
-            throw new Error("Character idx not found");
-        }
-
-        // restore character
-        const characterHeader = headers[headers.length - 2];
-        const blobData = await this.blockChain.pull<string>(characterHeader.prev);
-        const message: Message = JSON.parse(blobData);
-        if (!message) {
-            throw new Error("Detected invalid data on the blockchain");
-        }
-
-        if (
-            !message ||
-            !message.blob ||
-            message.blob.length === 0 ||
-            message.blob[0].msgType !== BlockStoreMsgType.character
-        ) {
-            throw new Error("Character data of blob is not valid");
-        }
-
-        // reset the character from the stored data
-        character = JSON.parse(message.blob[0].data);
-        elizaLogger.info("Restore Character from blockchain");
-
-        return character;
-    }
-
-    async getAllBlobHeaders(): Promise<BlobHeader[]> {
+    private async getAllBlobHeaders(): Promise<BlobHeader[]> {
         let headers: BlobHeader[] = [];
+        const count = this.parseRecoveryCount(process.env.BLOCKSTORE_RECOVERY_BLOB_COUNT, Number.MAX_SAFE_INTEGER);
 
-        let prev = await new Registry().getValue(this.id);
+        let prev = await new Registry().getBlobIdx(this.id);
         if (!prev || prev.trim() === "") {
             throw new Error(`Agent id ${this.id} not found on chain`);
         }
@@ -106,7 +90,7 @@ export class BlockStoreUtil {
             while(true) {
                 const blobData = await this.blockChain.pull<string>(prev);
                 // read idx from value
-                const message: Message = JSON.parse(blobData);
+                const message: Message = JSON.parse(blobData.trim());
                 if (!message) {
                     throw new Error("Detected invalid data on the blockchain");
                 }
@@ -115,14 +99,25 @@ export class BlockStoreUtil {
                 });
                 prev = message.prev;
 
-                if (prev == null || prev == "") {
+                if (prev === null || prev === "" || headers.length > count) {
                     break;
                 }
             }
         } catch (error) {
-            console.error('Error fetching values:', error);
+            elizaLogger.error('Error fetching values:', error);
         }
 
         return headers;
+    }
+
+    private parseRecoveryCount(envValue: string|undefined, defaultValue: number): number {
+        if (envValue !== undefined) {
+            const value = process.env[envValue]?.trim().toLowerCase();
+            if (value === "all") return -1;
+            const parsed = parseInt(envValue, 10);
+            if (!isNaN(parsed) && parsed >= 0) return parsed;
+        }
+
+        return defaultValue;
     }
 }
