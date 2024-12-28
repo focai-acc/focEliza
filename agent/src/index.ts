@@ -49,7 +49,6 @@ import { fileURLToPath } from "url";
 import yargs from "yargs";
 import {
     BlockStoreQueue,
-    BlockStoreUtil,
 } from "@ai16z/adapter-blockchain";
 
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
@@ -429,11 +428,15 @@ async function startAgent(character: Character, directClient) {
         character.id ??= stringToUuid(character.name);
         character.username ??= character.name;
 
+        const blockStoreRecovery = process.env.BLOCKSTORE_STORE_RECOVERY;
         const blockStoreAdapter = new BlockStoreQueue(character.id);
-        if (process.env.BLOCKSTORE_RECOVERY_ALL.toLowerCase() == "true") {
-            const bsUtil = new BlockStoreUtil(character.id);
-            character = await bsUtil.restoreCharacter();
-        } else if (process.env.BLOCKSTORE_STORE_CHARACTER.toLowerCase() == "true") {
+        if (["0", "1", "2", "3"].includes(blockStoreRecovery)) {
+            await blockStoreAdapter.initialize();
+        }
+
+        if (blockStoreRecovery === "0") {
+            character = await blockStoreAdapter.restoreCharacter();
+        } else if (["1", "2"].includes(blockStoreRecovery)) {
             blockStoreAdapter.enqueue(BlockStoreMsgType.character, character);
         }
 
@@ -449,9 +452,8 @@ async function startAgent(character: Character, directClient) {
 
         await db.init();
 
-        if (process.env.BLOCKSTORE_RECOVERY_ALL.toLowerCase() == "true") {
-            const bsUtil = new BlockStoreUtil(character.id, db);
-            await bsUtil.restoreMemory();
+        if (blockStoreRecovery === "0") {
+            await blockStoreAdapter.restoreMemory(db);
         }
 
         const cache = intializeDbCache(character, db);

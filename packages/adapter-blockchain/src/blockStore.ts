@@ -2,11 +2,15 @@ import Queue from 'queue';
 import {
     IBlockStoreAdapter,
     BlockStoreMsgType,
+    Character,
+    IDatabaseAdapter,
     elizaLogger,
 } from '@ai16z/eliza';
 import { IBlockchain, Message } from './types';
 import { createBlockchain } from "./blockchain";
 import { Registry } from './registry';
+import { Crypto } from './crypto';
+import { BlockStoreUtil } from './util';
 
 export class BlockStoreQueue implements IBlockStoreAdapter {
     private queue;
@@ -15,18 +19,28 @@ export class BlockStoreQueue implements IBlockStoreAdapter {
     private registry: Registry;
     private id: string;
 
+    private crypto: Crypto;
+
     private buffer: { msgType: BlockStoreMsgType; msg: any }[] = [];
     private bufferLimit: number = 10;
     private timeout: number = 10000;
     private timeoutHandle: NodeJS.Timeout | null = null;
+
+    private blobUtil: BlockStoreUtil;
 
     constructor(id: string) {
         this.queue = new Queue({ concurrency: 1 });
         this.blockChain = createBlockchain(process.env.BLOCKSTORE_CHAIN);
         this.registry = new Registry();
         this.id = id;
+        this.crypto = new Crypto(this.id);
+        this.blobUtil = new BlockStoreUtil(this.id, this.crypto);
 
         this.startProcessing();
+    }
+
+    async initialize() {
+        await this.crypto.initialize();
     }
 
     async enqueue<T>(msgType: BlockStoreMsgType, msg: T): Promise<void> {
@@ -102,6 +116,10 @@ export class BlockStoreQueue implements IBlockStoreAdapter {
         }
 
         const blobTasks = tasks.filter(task => task.msgType !== BlockStoreMsgType.character);
+        if (blobTasks.length === 0) {
+            return;
+        }
+
         // get last idx
         const idx = await this.registry.getBlobIdx(this.id);
 
@@ -116,7 +134,8 @@ export class BlockStoreQueue implements IBlockStoreAdapter {
             blob: blob,
         };
 
-        const uIdx = await this.blockChain.push(JSON.stringify(message).trim());
+        const encryptedData = await this.crypto.encrypt(JSON.stringify(message).trim());
+        const uIdx = await this.blockChain.push(encryptedData);
 
         // update idx
         const ret = await this.registry.updateOrRegisterBlobIdx(this.id, uIdx);
@@ -128,9 +147,18 @@ export class BlockStoreQueue implements IBlockStoreAdapter {
     private async processCharacter(msg: any): Promise<boolean> {
         // submit the character to blob
         const characterData = JSON.stringify(msg).trim();
-        const idx = await this.blockChain.push(characterData);
+        const encryptedData = await this.crypto.encrypt(characterData);
+        const idx = await this.blockChain.push(encryptedData);
 
         // save the idx of character to registry
         return await this.registry.updateOrRegisterCharacter(this.id, idx);
+    }
+
+    async restoreCharacter(): Promise<Character> {
+        return this.blobUtil.restoreCharacter();
+    }
+
+    async restoreMemory(database: IDatabaseAdapter) {
+        return this.blobUtil.restoreMemory(database);
     }
 }

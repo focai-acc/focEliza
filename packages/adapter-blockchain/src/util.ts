@@ -1,6 +1,7 @@
 import { BlobHeader, IBlockchain, Message } from "./types";
 import { Registry } from "./registry";
 import { createBlockchain } from "./blockchain";
+import { Crypto } from "./crypto";
 import {
     BlockStoreMsgType,
     IDatabaseAdapter,
@@ -11,16 +12,16 @@ import {
 
 export class BlockStoreUtil {
     private blockChain: IBlockchain;
-    private database?: IDatabaseAdapter;
     private id: string;
+    private crypto: Crypto;
 
-    constructor(id: string, database?: IDatabaseAdapter) {
+    constructor(id: string, crypto: Crypto) {
         if (id === "") {
             throw new Error("Agent id cannot be empty");
         }
         this.id = id;
-        this.database = database;
         this.blockChain = createBlockchain(process.env.BLOCKSTORE_CHAIN);
+        this.crypto = crypto;
     }
 
     async restoreCharacter(): Promise<Character> {
@@ -30,15 +31,16 @@ export class BlockStoreUtil {
         }
 
         const blobData = await this.blockChain.pull<string>(idx);
+        const plainData = await this.crypto.decrypt(blobData);
 
-        const character = JSON.parse(blobData.trim());
+        const character = JSON.parse(plainData.trim());
         elizaLogger.info("Recovering Character from blockchain");
 
         return character;
     }
 
-    async restoreMemory() {
-        if (!this.database) {
+    async restoreMemory(database: IDatabaseAdapter) {
+        if (!database) {
             throw new Error("database is not valid");
         }
 
@@ -48,7 +50,8 @@ export class BlockStoreUtil {
         for (let i = headers.length - 2; i >= 0; i--) {
             const header = headers[i];
             const blobData = await this.blockChain.pull<string>(header.prev);
-            const message: Message = JSON.parse(blobData.trim());
+            const plainData = await this.crypto.decrypt(blobData);
+            const message: Message = JSON.parse(plainData.trim());
             if (!message || !message.blob) {
                 throw new Error("Detected invalid data on the blockchain");
             }
@@ -58,8 +61,8 @@ export class BlockStoreUtil {
                 switch (blob.msgType) {
                     case BlockStoreMsgType.memory: {
                         const memory = JSON.parse(blob.data.trim());
-                        if (await this.database.getMemoryById(memory.id) == null) {
-                            await this.database.createMemory(memory, "message");
+                        if (await database.getMemoryById(memory.id) == null) {
+                            await database.createMemory(memory, "message");
                         }
                         break;
                     }
@@ -89,8 +92,9 @@ export class BlockStoreUtil {
         try {
             while(true) {
                 const blobData = await this.blockChain.pull<string>(prev);
+                const plainData = await this.crypto.decrypt(blobData);
                 // read idx from value
-                const message: Message = JSON.parse(blobData.trim());
+                const message: Message = JSON.parse(plainData.trim());
                 if (!message) {
                     throw new Error("Detected invalid data on the blockchain");
                 }
