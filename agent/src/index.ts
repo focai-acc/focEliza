@@ -70,6 +70,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import yargs from "yargs";
 import net from "net";
+import { evo } from './evolution'
 
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename); // get the name of the directory
@@ -570,11 +571,11 @@ export async function createAgent(
             ...(getSecret(character, "COINBASE_API_KEY") &&
             getSecret(character, "COINBASE_PRIVATE_KEY")
                 ? [
-                      coinbaseMassPaymentsPlugin,
-                      tradePlugin,
-                      tokenContractPlugin,
-                      advancedTradePlugin,
-                  ]
+                    coinbaseMassPaymentsPlugin,
+                    tradePlugin,
+                    tokenContractPlugin,
+                    advancedTradePlugin,
+                ]
                 : []),
             ...(teeMode !== TEEMode.OFF && walletSecretSalt
                 ? [teePlugin, solanaPlugin]
@@ -749,6 +750,9 @@ const checkPortAvailable = (port: number): Promise<boolean> => {
     });
 };
 
+const allAgentRuntime: AgentRuntime[] = [];
+var charactername = '';
+
 const startAgents = async () => {
     const directClient = new DirectClient();
     let serverPort = parseInt(settings.SERVER_PORT || "3000");
@@ -784,6 +788,22 @@ const startAgents = async () => {
 
     directClient.start(serverPort);
 
+    setInterval(async () => {
+        var objectname = await evo();
+        if(objectname && objectname != charactername){
+            let charactersNew = loadCharactersSync("characters/" + objectname);
+
+            let runtimeOld = allAgentRuntime[0];
+            directClient.unregisterAgent(runtimeOld);
+            allAgentRuntime.splice(0, allAgentRuntime.length);
+
+            const character = charactersNew[0];
+            let runtimeTemp: AgentRuntime = await startAgent(character, directClient);
+            allAgentRuntime.push(runtimeTemp);
+            charactername = objectname;
+        }
+    }, 1000 * 10);
+
     if (serverPort !== parseInt(settings.SERVER_PORT || "3000")) {
         elizaLogger.log(`Server started on alternate port ${serverPort}`);
     }
@@ -792,6 +812,93 @@ const startAgents = async () => {
         "Run `pnpm start:client` to start the client and visit the outputted URL (http://localhost:5173) to chat with your agents. When running multiple agents, use client with different port `SERVER_PORT=3001 pnpm start:client`"
     );
 };
+
+export function loadCharactersSync(
+    charactersArg: string
+): Character[] {
+    let characterPaths = charactersArg
+        ?.split(",")
+        .map((filePath) => filePath.trim());
+    const loadedCharacters = [];
+    if (characterPaths?.length > 0) {
+        for (const characterPath of characterPaths) {
+            let content = null;
+            let resolvedPath = "";
+            // Try different path resolutions in order
+            const pathsToTry = [
+                characterPath, // exact path as specified
+                path.resolve(process.cwd(), characterPath), // relative to cwd
+                path.resolve(process.cwd(), "agent", characterPath), // Add this
+                path.resolve(__dirname, characterPath), // relative to current script
+                path.resolve(
+                    __dirname,
+                    "characters",
+                    path.basename(characterPath)
+                ), // relative to agent/characters
+                path.resolve(
+                    __dirname,
+                    "../characters",
+                    path.basename(characterPath)
+                ), // relative to characters dir from agent
+                path.resolve(
+                    __dirname,
+                    "../../characters",
+                    path.basename(characterPath)
+                ), // relative to project root characters dir
+            ];
+            elizaLogger.info(
+                "Trying paths:",
+                pathsToTry.map((p) => ({
+                    path: p,
+                    exists: fs.existsSync(p),
+                }))
+            );
+            for (const tryPath of pathsToTry) {
+                content = tryLoadFile(tryPath);
+                if (content !== null) {
+                    resolvedPath = tryPath;
+                    break;
+                }
+            }
+            if (content === null) {
+                elizaLogger.error(
+                    `Error loading character from ${characterPath}: File not found in any of the expected locations`
+                );
+                elizaLogger.error("Tried the following paths:");
+                pathsToTry.forEach((p) => elizaLogger.error(` - ${p}`));
+                process.exit(1);
+            }
+            try {
+                const character = JSON.parse(content);
+                validateCharacterConfig(character);
+                // Handle plugins
+                if (isAllStrings(character.plugins)) {
+                    elizaLogger.info("Plugins are: ", character.plugins);
+                    const importedPlugins =
+                        character.plugins.map(async (plugin) => {
+                            const importedPlugin = await import(plugin);
+                            return importedPlugin.default;
+                        })
+                    character.plugins = importedPlugins;
+                }
+                loadedCharacters.push(character);
+                elizaLogger.info(
+                    `Successfully loaded character from: ${resolvedPath}`
+                );
+            } catch (e) {
+                elizaLogger.error(
+                    `Error parsing character from ${resolvedPath}: ${e}`
+                );
+                process.exit(1);
+            }
+        }
+    }
+    if (loadedCharacters.length === 0) {
+        elizaLogger.info("No characters found, using default character");
+        loadedCharacters.push(defaultCharacter);
+    }
+    return loadedCharacters;
+}
 
 startAgents().catch((error) => {
     elizaLogger.error("Unhandled error in startAgents:", error);
