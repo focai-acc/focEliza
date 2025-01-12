@@ -83,6 +83,7 @@
         "@elizaos/plugin-arthera": "workspace:*",
         "@elizaos/plugin-allora": "workspace:*",
         "@elizaos/plugin-opacity": "workspace:*",
+        "@elizaos/plugin-chainbase": "workspace:*",
         "readline": "1.3.0",
         "ws": "8.18.0",
         "yargs": "17.7.2"
