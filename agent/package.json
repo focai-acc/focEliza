@@ -19,7 +19,6 @@
     },
     "dependencies": {
         "@bnb-chain/greenfield-js-sdk": "^2.2.0",
-        "@bnb-chain/reed-solomon": "^1.1.3",
         "@elizaos/adapter-postgres": "workspace:*",
         "@elizaos/adapter-redis": "workspace:*",
         "@elizaos/adapter-sqlite": "workspace:*",
@@ -64,7 +63,6 @@
         "@elizaos/plugin-web-search": "workspace:*",
         "@elizaos/plugin-zksync-era": "workspace:*",
         "@elizaos/plugin-greenfield": "workspace:*",
-        "ethers": "6.13.4",
         "readline": "1.3.0",
         "ws": "8.18.0",
         "yargs": "17.7.2"
