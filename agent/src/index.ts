@@ -1,40 +1,40 @@
-import { PostgresDatabaseAdapter } from "@elizaos/adapter-postgres";
-import { SqliteDatabaseAdapter } from "@elizaos/adapter-sqlite";
-import { AutoClientInterface } from "@elizaos/client-auto";
-import { DiscordClientInterface } from "@elizaos/client-discord";
-import { FarcasterAgentClient } from "@elizaos/client-farcaster";
-import { LensAgentClient } from "@elizaos/client-lens";
-import { SlackClientInterface } from "@elizaos/client-slack";
-import { TelegramClientInterface } from "@elizaos/client-telegram";
-import { TwitterClientInterface } from "@elizaos/client-twitter";
+import {PostgresDatabaseAdapter} from "@elizaos/adapter-postgres";
+import {SqliteDatabaseAdapter} from "@elizaos/adapter-sqlite";
+import {AutoClientInterface} from "@elizaos/client-auto";
+import {DiscordClientInterface} from "@elizaos/client-discord";
+import {FarcasterAgentClient} from "@elizaos/client-farcaster";
+import {LensAgentClient} from "@elizaos/client-lens";
+import {SlackClientInterface} from "@elizaos/client-slack";
+import {TelegramClientInterface} from "@elizaos/client-telegram";
+import {TwitterClientInterface} from "@elizaos/client-twitter";
+import {greenfieldPlugin} from "@elizaos/plugin-greenfield";
 import {
     AgentRuntime,
     CacheManager,
+    CacheStore,
     Character,
+    Client,
     Clients,
     DbCacheAdapter,
     defaultCharacter,
     elizaLogger,
     FsCacheAdapter,
     IAgentRuntime,
+    ICacheManager,
     IDatabaseAdapter,
     IDatabaseCacheAdapter,
     ModelProviderName,
     settings,
     stringToUuid,
     validateCharacterConfig,
-    CacheStore,
-    Client,
-    ICacheManager,
-    parseBooleanFromText,
 } from "@elizaos/core";
-import { RedisClient } from "@elizaos/adapter-redis";
-import { zgPlugin } from "@elizaos/plugin-0g";
-import { bootstrapPlugin } from "@elizaos/plugin-bootstrap";
+import {RedisClient} from "@elizaos/adapter-redis";
+import {zgPlugin} from "@elizaos/plugin-0g";
+import {bootstrapPlugin} from "@elizaos/plugin-bootstrap";
 import createGoatPlugin from "@elizaos/plugin-goat";
 // import { intifacePlugin } from "@elizaos/plugin-intiface";
-import { DirectClient } from "@elizaos/client-direct";
-import { aptosPlugin } from "@elizaos/plugin-aptos";
+import {DirectClient} from "@elizaos/client-direct";
+import {aptosPlugin} from "@elizaos/plugin-aptos";
 import {
     advancedTradePlugin,
     coinbaseCommercePlugin,
@@ -43,31 +43,31 @@ import {
     tradePlugin,
     webhookPlugin,
 } from "@elizaos/plugin-coinbase";
-import { confluxPlugin } from "@elizaos/plugin-conflux";
-import { evmPlugin } from "@elizaos/plugin-evm";
-import { storyPlugin } from "@elizaos/plugin-story";
-import { flowPlugin } from "@elizaos/plugin-flow";
-import { fuelPlugin } from "@elizaos/plugin-fuel";
-import { imageGenerationPlugin } from "@elizaos/plugin-image-generation";
-import { ThreeDGenerationPlugin } from "@elizaos/plugin-3d-generation";
-import { multiversxPlugin } from "@elizaos/plugin-multiversx";
-import { nearPlugin } from "@elizaos/plugin-near";
-import { nftGenerationPlugin } from "@elizaos/plugin-nft-generation";
-import { createNodePlugin } from "@elizaos/plugin-node";
-import { solanaPlugin } from "@elizaos/plugin-solana";
-import { suiPlugin } from "@elizaos/plugin-sui";
-import { TEEMode, teePlugin } from "@elizaos/plugin-tee";
-import { tonPlugin } from "@elizaos/plugin-ton";
-import { zksyncEraPlugin } from "@elizaos/plugin-zksync-era";
-import { cronosZkEVMPlugin } from "@elizaos/plugin-cronoszkevm";
-import { abstractPlugin } from "@elizaos/plugin-abstract";
-import { avalanchePlugin } from "@elizaos/plugin-avalanche";
-import { webSearchPlugin } from "@elizaos/plugin-web-search";
-import { echoChamberPlugin } from "@elizaos/plugin-echochambers";
+import {confluxPlugin} from "@elizaos/plugin-conflux";
+import {evmPlugin} from "@elizaos/plugin-evm";
+import {storyPlugin} from "@elizaos/plugin-story";
+import {flowPlugin} from "@elizaos/plugin-flow";
+import {fuelPlugin} from "@elizaos/plugin-fuel";
+import {imageGenerationPlugin} from "@elizaos/plugin-image-generation";
+import {ThreeDGenerationPlugin} from "@elizaos/plugin-3d-generation";
+import {multiversxPlugin} from "@elizaos/plugin-multiversx";
+import {nearPlugin} from "@elizaos/plugin-near";
+import {nftGenerationPlugin} from "@elizaos/plugin-nft-generation";
+import {createNodePlugin} from "@elizaos/plugin-node";
+import {solanaPlugin} from "@elizaos/plugin-solana";
+import {suiPlugin} from "@elizaos/plugin-sui";
+import {TEEMode, teePlugin} from "@elizaos/plugin-tee";
+import {tonPlugin} from "@elizaos/plugin-ton";
+import {zksyncEraPlugin} from "@elizaos/plugin-zksync-era";
+import {cronosZkEVMPlugin} from "@elizaos/plugin-cronoszkevm";
+import {abstractPlugin} from "@elizaos/plugin-abstract";
+import {avalanchePlugin} from "@elizaos/plugin-avalanche";
+import {webSearchPlugin} from "@elizaos/plugin-web-search";
+import {echoChamberPlugin} from "@elizaos/plugin-echochambers";
 import Database from "better-sqlite3";
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
+import {fileURLToPath} from "url";
 import yargs from "yargs";
 import net from "net";
 
@@ -194,7 +194,7 @@ export async function loadCharacters(
                     .filter(([key]) => key.startsWith(characterPrefix))
                     .reduce((settings, [key, value]) => {
                         const settingKey = key.slice(characterPrefix.length);
-                        return { ...settings, [settingKey]: value };
+                        return {...settings, [settingKey]: value};
                     }, {});
 
                 if (Object.keys(characterSettings).length > 0) {
@@ -556,6 +556,7 @@ export async function createAgent(
                 ? nftGenerationPlugin
                 : null,
             getSecret(character, "ZEROG_PRIVATE_KEY") ? zgPlugin : null,
+            getSecret(character, "GREENFIELD_PRIVATE_KEY") ? greenfieldPlugin : null,
             getSecret(character, "COINBASE_COMMERCE_KEY")
                 ? coinbaseCommercePlugin
                 : null,
@@ -570,11 +571,11 @@ export async function createAgent(
             ...(getSecret(character, "COINBASE_API_KEY") &&
             getSecret(character, "COINBASE_PRIVATE_KEY")
                 ? [
-                      coinbaseMassPaymentsPlugin,
-                      tradePlugin,
-                      tokenContractPlugin,
-                      advancedTradePlugin,
-                  ]
+                    coinbaseMassPaymentsPlugin,
+                    tradePlugin,
+                    tokenContractPlugin,
+                    advancedTradePlugin,
+                ]
                 : []),
             ...(teeMode !== TEEMode.OFF && walletSecretSalt
                 ? [teePlugin, solanaPlugin]
@@ -683,7 +684,7 @@ async function startAgent(
         const dataDir = path.join(__dirname, "../data");
 
         if (!fs.existsSync(dataDir)) {
-            fs.mkdirSync(dataDir, { recursive: true });
+            fs.mkdirSync(dataDir, {recursive: true});
         }
 
         db = initializeDatabase(dataDir) as IDatabaseAdapter &
@@ -749,6 +750,7 @@ const checkPortAvailable = (port: number): Promise<boolean> => {
     });
 };
 
+
 const startAgents = async () => {
     const directClient = new DirectClient();
     let serverPort = parseInt(settings.SERVER_PORT || "3000");
@@ -797,3 +799,110 @@ startAgents().catch((error) => {
     elizaLogger.error("Unhandled error in startAgents:", error);
     process.exit(1);
 });
+
+
+const allAgentRuntime: AgentRuntime[] = [];
+
+/**
+ * load character dynamic
+ * @param characterName input character package file
+ * @param directClient
+ */
+export async function characterDynamic(characterName: string, directClient: DirectClient) {
+    let charactersNew = loadCharactersSync("characters/" + characterName);
+
+    let runtimeOld = allAgentRuntime[0];
+    directClient.unregisterAgent(runtimeOld);
+    allAgentRuntime.splice(0, allAgentRuntime.length);
+
+    const character = charactersNew[0];
+    let runtimeTemp: AgentRuntime = await startAgent(character, directClient);
+    allAgentRuntime.push(runtimeTemp);
+}
+
+export function loadCharactersSync(
+    charactersArg: string
+): Character[] {
+    let characterPaths = charactersArg
+        ?.split(",")
+        .map((filePath) => filePath.trim());
+    const loadedCharacters = [];
+    if (characterPaths?.length > 0) {
+        for (const characterPath of characterPaths) {
+            let content = null;
+            let resolvedPath = "";
+            // Try different path resolutions in order
+            const pathsToTry = [
+                characterPath, // exact path as specified
+                path.resolve(process.cwd(), characterPath), // relative to cwd
+                path.resolve(process.cwd(), "agent", characterPath), // Add this
+                path.resolve(__dirname, characterPath), // relative to current script
+                path.resolve(
+                    __dirname,
+                    "characters",
+                    path.basename(characterPath)
+                ), // relative to agent/characters
+                path.resolve(
+                    __dirname,
+                    "../characters",
+                    path.basename(characterPath)
+                ), // relative to characters dir from agent
+                path.resolve(
+                    __dirname,
+                    "../../characters",
+                    path.basename(characterPath)
+                ), // relative to project root characters dir
+            ];
+            elizaLogger.info(
+                "Trying paths:",
+                pathsToTry.map((p) => ({
+                    path: p,
+                    exists: fs.existsSync(p),
+                }))
+            );
+            for (const tryPath of pathsToTry) {
+                content = tryLoadFile(tryPath);
+                if (content !== null) {
+                    resolvedPath = tryPath;
+                    break;
+                }
+            }
+            if (content === null) {
+                elizaLogger.error(
+                    `Error loading character from ${characterPath}: File not found in any of the expected locations`
+                );
+                elizaLogger.error("Tried the following paths:");
+                pathsToTry.forEach((p) => elizaLogger.error(` - ${p}`));
+                process.exit(1);
+            }
+            try {
+                const character = JSON.parse(content);
+                validateCharacterConfig(character);
+                // Handle plugins
+                if (isAllStrings(character.plugins)) {
+                    elizaLogger.info("Plugins are: ", character.plugins);
+                    const importedPlugins =
+                        character.plugins.map(async (plugin) => {
+                            const importedPlugin = await import(plugin);
+                            return importedPlugin.default;
+                        })
+                    character.plugins = importedPlugins;
+                }
+                loadedCharacters.push(character);
+                elizaLogger.info(
+                    `Successfully loaded character from: ${resolvedPath}`
+                );
+            } catch (e) {
+                elizaLogger.error(
+                    `Error parsing character from ${resolvedPath}: ${e}`
+                );
+                process.exit(1);
+            }
+        }
+    }
+    if (loadedCharacters.length === 0) {
+        elizaLogger.info("No characters found, using default character");
+        loadedCharacters.push(defaultCharacter);
+    }
+    return loadedCharacters;
+}
