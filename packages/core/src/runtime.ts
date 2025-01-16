@@ -33,6 +33,7 @@ import {
     IDatabaseAdapter,
     IRAGKnowledgeManager,
     IMemoryManager,
+    IVerifiableInferenceAdapter,
     KnowledgeItem,
     RAGKnowledgeItem,
     Media,
@@ -48,7 +49,6 @@ import {
     type Actor,
     type Evaluator,
     type Memory,
-    IVerifiableInferenceAdapter,
 } from "./types.ts";
 import { stringToUuid } from "./uuid.ts";
 import { readFile } from 'fs/promises';

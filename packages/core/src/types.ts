@@ -1425,6 +1425,7 @@ export interface ISlackService extends Service {
  */
 export enum VerifiableInferenceProvider {
     OPACITY = "opacity",
+    PRIMUS = "primus",
 }
 
 /**
@@ -1480,6 +1481,7 @@ export interface IVerifiableInferenceAdapter {
      */
     verifyProof(result: VerifiableInferenceResult): Promise<boolean>;
 }
+
 
 export enum TokenizerType {
     Auto = "auto",
