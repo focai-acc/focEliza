@@ -1,4 +1,3 @@
-import { PrimusCoreTLS } from "@primuslabs/zktls-core-sdk";
 import {
     IVerifiableInferenceAdapter,
     VerifiableInferenceOptions,
