@@ -30,7 +30,7 @@
 
 ### 编辑.env文件
 
-- - 将 .env.example 复制为 .env 并填写适当的值
+-   - 将 .env.example 复制为 .env 并填写适当的值
 - 编辑推特环境并输入你的推特账号和密码
 
 ### 编辑角色文件
@@ -95,7 +95,6 @@ TWITTER_USERNAME= # Account username
 TWITTER_PASSWORD= # Account password
 TWITTER_EMAIL= # Account email
 
-X_SERVER_URL=
 XAI_API_KEY=
 XAI_MODEL=
 
@@ -118,7 +117,7 @@ BIRDEYE_API_KEY=
 
 SOL_ADDRESS=So11111111111111111111111111111111111111112
 SLIPPAGE=1
-RPC_URL=https://api.mainnet-beta.solana.com
+SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
 HELIUS_API_KEY=
 
 

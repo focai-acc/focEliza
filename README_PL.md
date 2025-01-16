@@ -51,8 +51,10 @@ cd eliza-starter
 cp .env.example .env
 pnpm i && pnpm build && pnpm start
 ```
+
 Gdy agent się uruchomi, powinien pojawić się komunikat aby uruchomić komendę "pnpm start:client".
 Wtedy trzeba odpalić drugi terminal, przejść do tego samego folderu, w którym mamy sklonowany kod z Githuba i odpalić tą komendę, aby być w stanie rozpocząć konwersację z naszym botem.
+
 ```bash
 pnpm start:client
 ```

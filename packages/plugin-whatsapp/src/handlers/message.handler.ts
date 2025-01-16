@@ -14,7 +14,7 @@ export class MessageHandler {
                     `Failed to send WhatsApp message: ${error.message}`
                 );
             }
-            throw new Error('Failed to send WhatsApp message');
+            throw new Error("Failed to send WhatsApp message");
         }
     }
 }

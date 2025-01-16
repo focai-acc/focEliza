@@ -25,11 +25,10 @@ services:
             - TWITTER_USERNAME=
             - TWITTER_PASSWORD=
             - TWITTER_EMAIL=
-            - X_SERVER_URL=https://api.red-pill.ai/v1
             - BIRDEYE_API_KEY=
             - SOL_ADDRESS=So11111111111111111111111111111111111111112
             - SLIPPAGE=1
-            - RPC_URL=https://api.mainnet-beta.solana.com
+            - SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
             - HELIUS_API_KEY=
             - SERVER_PORT=3000
             - WALLET_SECRET_SALT=secret_salt

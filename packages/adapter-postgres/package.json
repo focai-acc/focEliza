@@ -16,7 +16,9 @@
         }
     },
     "files": [
-        "dist"
+        "dist",
+        "schema.sql",
+        "seed.sql"
     ],
     "dependencies": {
         "@elizaos/core": "workspace:*",

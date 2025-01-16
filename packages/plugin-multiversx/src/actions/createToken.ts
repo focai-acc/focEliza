@@ -13,7 +13,7 @@ import {
 } from "@elizaos/core";
 import { WalletProvider } from "../providers/wallet";
 import { validateMultiversxConfig } from "../enviroment";
-
+import { createTokenSchema } from "../utils/schemas";
 export interface CreateTokenContent extends Content {
     tokenName: string;
     tokenTicker: string;
@@ -23,10 +23,10 @@ export interface CreateTokenContent extends Content {
 
 function isCreateTokenContent(
     runtime: IAgentRuntime,
-    content: any
-): content is CreateTokenContent {
+    content: CreateTokenContent
+) {
     console.log("Content for create token", content);
-    return content.tokenName && content.tokenTicker && content.amount;
+    return content.tokenName && content.tokenName && content.tokenName;
 }
 
 const createTokenTemplate = `Respond with a JSON markdown block containing only the extracted values. Use null for any values that cannot be determined.
@@ -87,11 +87,14 @@ export default {
             runtime,
             context: transferContext,
             modelClass: ModelClass.SMALL,
+            schema: createTokenSchema,
         });
 
+        const payload = content.object as CreateTokenContent;
+
         // Validate transfer content
-        if (!isCreateTokenContent(runtime, content)) {
-            console.error("Invalid content for TRANSFER_TOKEN action.");
+        if (!isCreateTokenContent(runtime, payload)) {
+            console.error("Invalid content for CREATE_TOKEN action.");
             if (callback) {
                 callback({
                     text: "Unable to process transfer request. Invalid content provided.",
@@ -108,10 +111,10 @@ export default {
             const walletProvider = new WalletProvider(privateKey, network);
 
             await walletProvider.createESDT({
-                tokenName: content.tokenName,
-                amount: content.amount,
-                decimals: Number(content.decimals) || 18,
-                tokenTicker: content.tokenTicker,
+                tokenName: payload.tokenName,
+                amount: payload.amount,
+                decimals: Number(payload.decimals) || 18,
+                tokenTicker: payload.tokenTicker,
             });
             return true;
         } catch (error) {

@@ -20,9 +20,7 @@
     ],
     "dependencies": {
         "@elizaos/core": "workspace:*",
-        "@elizaos/plugin-trustdb": "workspace:*",
         "@mysten/sui": "^1.16.0",
-        "bignumber": "1.1.0",
         "bignumber.js": "9.1.2",
         "node-cache": "5.1.2",
         "tsup": "8.3.5",

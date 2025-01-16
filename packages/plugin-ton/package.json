@@ -20,8 +20,6 @@
     ],
     "dependencies": {
         "@elizaos/core": "workspace:*",
-        "@elizaos/plugin-trustdb": "workspace:*",
-        "bignumber": "1.1.0",
         "bignumber.js": "9.1.2",
         "node-cache": "5.1.2",
         "@ton/ton": "15.1.0",

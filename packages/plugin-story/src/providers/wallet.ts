@@ -10,6 +10,7 @@ import {
     type HttpTransport,
     type Address,
     Account,
+    Transport,
 } from "viem";
 import { storyOdyssey } from "viem/chains";
 import type { SupportedChain, ChainMetadata } from "../types";
@@ -52,8 +53,10 @@ export class WalletProvider {
         this.address = account.address;
 
         const config: StoryConfig = {
-            account: account,
-            transport: http(DEFAULT_CHAIN_CONFIGS.odyssey.rpcUrl),
+            // @ts-ignore
+            account: account as Account,
+            // @ts-ignore
+            transport: hwttp(DEFAULT_CHAIN_CONFIGS.odyssey.rpcUrl) as Transport,
             chainId: "odyssey",
         };
         this.storyClient = StoryClient.newClient(config);

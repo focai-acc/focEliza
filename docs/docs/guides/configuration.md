@@ -25,10 +25,6 @@ Here are the essential environment variables you need to configure:
 OPENAI_API_KEY=sk-your-key # Required for OpenAI features
 ANTHROPIC_API_KEY=your-key  # Required for Claude models
 TOGETHER_API_KEY=your-key   # Required for Together.ai models
-
-# Default Settings
-XAI_MODEL=gpt-4o-mini      # Default model to use
-X_SERVER_URL=              # Optional model API endpoint
 ```
 
 ### Client-Specific Configuration
@@ -74,11 +70,7 @@ HEURIST_API_KEY=
 
 # Livepeer Settings
 LIVEPEER_GATEWAY_URL=
-
-# Local Model Settings
-XAI_MODEL=meta-llama/Llama-3.1-7b-instruct
 ```
-
 ### Image Generation
 
 Configure image generation in your character file:

@@ -53,7 +53,10 @@ export class CircuitBreaker {
         this.failureCount++;
         this.lastFailureTime = Date.now();
 
-        if (this.state !== "OPEN" && this.failureCount >= this.failureThreshold) {
+        if (
+            this.state !== "OPEN" &&
+            this.failureCount >= this.failureThreshold
+        ) {
             this.state = "OPEN";
         }
     }

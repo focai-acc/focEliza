@@ -92,9 +92,9 @@ Eliza supports multiple AI models:
 - **Heurist**: Set `modelProvider: "heurist"` in your character file. Most models are uncensored.
     - LLM: Select available LLMs [here](https://docs.heurist.ai/dev-guide/supported-models#large-language-models-llms) and configure `SMALL_HEURIST_MODEL`,`MEDIUM_HEURIST_MODEL`,`LARGE_HEURIST_MODEL`
     - Image Generation: Select available Stable Diffusion or Flux models [here](https://docs.heurist.ai/dev-guide/supported-models#image-generation-models) and configure `HEURIST_IMAGE_MODEL` (default is FLUX.1-dev)
-- **Llama**: Set `XAI_MODEL=meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo`
-- **Grok**: Set `XAI_MODEL=grok-beta`
-- **OpenAI**: Set `XAI_MODEL=gpt-4o-mini` or `gpt-4o`
+- **Llama**: Set `OLLAMA_MODEL` to your chosen model
+- **Grok**: Set `GROK_API_KEY` to your Grok API key and set `modelProvider: "grok"` in your character file
+- **OpenAI**: Set `OPENAI_API_KEY` to your OpenAI API key and set `modelProvider: "openai"` in your character file
 - **Livepeer**: Set `LIVEPEER_IMAGE_MODEL` to your chosen Livepeer image model, available models [here](https://livepeer-eliza.com/)
 
 You set which model to use inside the character JSON file
@@ -103,8 +103,6 @@ You set which model to use inside the character JSON file
 
     #### For llama_local inference:
 
-      1. Set `XAI_MODEL` to your chosen model
-      2. Leave `X_SERVER_URL` and `XAI_API_KEY` blank
       3. The system will automatically download the model from Hugging Face
       4. `LOCAL_LLAMA_PROVIDER` can be blank
 
@@ -215,15 +213,17 @@ pnpm start --characters="characters/trump.character.json,characters/tate.charact
 
 1. **Node.js Version**
 
-   - Ensure Node.js 23.3.0 is installed
-   - Use `node -v` to check version
-   - Consider using [nvm](https://github.com/nvm-sh/nvm) to manage Node versions
+    - Ensure Node.js 23.3.0 is installed
+    - Use `node -v` to check version
+    - Consider using [nvm](https://github.com/nvm-sh/nvm) to manage Node versions
 
-   NOTE: pnpm may be bundled with a different node version, ignoring nvm. If this is the case, you can use
-   ```bash
-   pnpm env use --global 23.3.0
-   ```
-   to force it to use the correct one.
+    NOTE: pnpm may be bundled with a different node version, ignoring nvm. If this is the case, you can use
+
+    ```bash
+    pnpm env use --global 23.3.0
+    ```
+
+    to force it to use the correct one.
 
 2. **Sharp Installation**
    If you see Sharp-related errors:

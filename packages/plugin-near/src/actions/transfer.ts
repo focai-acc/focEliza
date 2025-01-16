@@ -64,7 +64,7 @@ async function transferNEAR(
 ): Promise<string> {
     const networkId = runtime.getSetting("NEAR_NETWORK") || "testnet";
     const nodeUrl =
-        runtime.getSetting("RPC_URL") || "https://rpc.testnet.near.org";
+        runtime.getSetting("NEAR_RPC_URL") || "https://rpc.testnet.near.org";
     const accountId = runtime.getSetting("NEAR_ADDRESS");
     const secretKey = runtime.getSetting("NEAR_WALLET_SECRET_KEY");
 

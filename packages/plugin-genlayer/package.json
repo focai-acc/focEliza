@@ -1,0 +1,18 @@
+{
+    "name": "@elizaos/plugin-genlayer",
+    "version": "0.1.0",
+    "main": "dist/index.js",
+    "type": "module",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsup --format esm --dts",
+        "dev": "tsup --format esm --dts --watch",
+        "lint": "eslint . --fix",
+        "test": "vitest run"
+    },
+    "dependencies": {
+        "genlayer-js": "0.4.7",
+        "@elizaos/core": "workspace:*",
+        "tsup": "8.3.5"
+    }
+}

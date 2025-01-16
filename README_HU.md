@@ -47,8 +47,10 @@ cd eliza-starter
 cp .env.example .env
 pnpm i && pnpm build && pnpm start
 ```
+
 Miután az ügynök elindult, a folyamat végén egy üzenetet kell látnod, amely arra utal, hogy futtasd a "pnpm start:client" parancsot.
 Nyiss egy másik terminált, navigálj ugyanabba a könyvtárba, és futtasd az alábbi parancsot, majd kövesd az URL-t, hogy kommunikálhass az ügynököddel:
+
 ```bash
 pnpm start:client
 ```
@@ -89,7 +91,9 @@ sh scripts/start.sh
 ```
 
 ### Karakterfájl szerkesztése
+
 ``
+
 1. Nyisd meg a `packages/core/src/defaultCharacter.ts` fájlt, hogy módosítsd az alapértelmezett karaktert. Kommentezd ki és szerkeszd.
 
 2. Egyedi karakterek betöltése:

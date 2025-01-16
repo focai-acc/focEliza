@@ -6,9 +6,9 @@ export const gitbookPlugin: Plugin = {
     description: "Plugin for querying GitBook documentation",
     actions: [],
     providers: [gitbookProvider],
-    evaluators: []
+    evaluators: [],
 };
 
 export default gitbookPlugin;
 
-export * from './types';
+export * from "./types";

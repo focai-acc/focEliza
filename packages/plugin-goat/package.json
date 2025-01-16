@@ -26,8 +26,7 @@
         "@goat-sdk/plugin-kim": "0.1.2",
         "@goat-sdk/wallet-evm": "0.2.0",
         "@goat-sdk/wallet-viem": "0.2.0",
-        "tsup": "8.3.5",
-        "viem": "2.21.53"
+        "tsup": "8.3.5"
     },
     "scripts": {
         "build": "tsup --format esm --dts",

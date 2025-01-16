@@ -1,4 +1,4 @@
-[@elizaos/core v0.1.7-alpha.1](../index.md) / ConversationExample
+[@elizaos/core v0.1.7](../index.md) / ConversationExample
 
 # Interface: ConversationExample
 
@@ -16,7 +16,7 @@ UUID of user in conversation
 
 [packages/core/src/types.ts:50](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L50)
 
-***
+---
 
 ### content
 

@@ -52,7 +52,7 @@ cp .env.example .env
 pnpm i && pnpm start
 ```
 
-تعلم أكثر عن كيفية تخصيص إليزا من هنا [التعليمات](https://elizaos.github.io/eliza/) 
+تعلم أكثر عن كيفية تخصيص إليزا من هنا [التعليمات](https://elizaos.github.io/eliza/)
 
 ### إذا كان لديك خبرة بالفعل، يُمكنك تشغيل إليزا يدويًا.
 
@@ -65,7 +65,7 @@ git clone https://github.com/elizaos/eliza.git
 git checkout $(git describe --tags --abbrev=0)
 ```
 
-### تشغل إليزا مع Gitpod 
+### تشغل إليزا مع Gitpod
 
 [![In Gitpod öffnen](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/elizaos/eliza/tree/main)
 
@@ -92,11 +92,13 @@ sh scripts/start.sh
 افتح ملف agent/src/character.ts لتعديل الشخصية الافتراضية. قم بإلغاء التعليق وعدّل عليها.
 
 لتحميل شخصيات مخصصة
-   - استخدم الأمر "pnpm start --characters="path/to/your/character.json
-   - يُمكنك تحميل عدة ملفات للشخصيات في نفس الوقت.
+
+- استخدم الأمر "pnpm start --characters="path/to/your/character.json
+- يُمكنك تحميل عدة ملفات للشخصيات في نفس الوقت.
 
 الاتصال بـ X (تويتر):
-   - غيّر "clients": [] إلى "clients": ["twitter"] في ملف الشخصية للاتصال بـ X أو تويتر
+
+- غيّر "clients": [] إلى "clients": ["twitter"] في ملف الشخصية للاتصال بـ X أو تويتر
 
 ### لتشغيل إليزا يدويًا
 
@@ -119,7 +121,7 @@ pnpm install --include=optional sharp
 
 ### المجتمع والدعم
 
-- في حال إذا واجهت أي مشاكل تتعلق باستخدام إليزا ولتقديم المقترحات  [GitHub Issues](https://github.com/elizaos/eliza/issues). 
+- في حال إذا واجهت أي مشاكل تتعلق باستخدام إليزا ولتقديم المقترحات [GitHub Issues](https://github.com/elizaos/eliza/issues).
 - لمشاركة تطبيقاتك والتفاعل مع المجتمع [Discord](https://discord.gg/ai16z).
 
 ## المُساهمون

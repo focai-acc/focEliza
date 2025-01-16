@@ -15,6 +15,7 @@ packages/plugin-buttplug/intiface-engine
 dist/
 # Allow models directory but ignore model files
 models/*.gguf
+pgLite/
 
 cookies.json
 
@@ -50,8 +51,13 @@ tsup.config.bundled_*.mjs
 
 .turbo
 .cursorrules
+.pnpm-store
 
 coverage
 .eslintcache
 
 agent/content
+
+eliza.manifest
+eliza.manifest.sgx
+eliza.sig

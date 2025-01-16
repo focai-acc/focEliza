@@ -32,4 +32,4 @@ interface TokenMillMarketCreationParameters {
     args: string;
 }
 
-export type { YakSwapQuote, TokenMillMarketCreationParameters }
+export type { YakSwapQuote, TokenMillMarketCreationParameters };

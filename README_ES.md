@@ -4,38 +4,38 @@
 
 ## Funcionalidades
 
--   🛠 Conectores completos para Discord, Twitter y Telegram
--   👥 Soporte para múltiples agentes y salas
--   📚 Ingestión e interacción sencilla con documentos
--   💾 Memoria recuperable y almacenamiento de documentos
--   🚀 Altamente extensible - cree sus propias acciones y clientes para expandir capacidades
--   ☁️ Soporta múltiples modelos, incluidos Llama local, OpenAI, Anthropic, Groq y más
--   📦 Funciona perfectamente
+- 🛠 Conectores completos para Discord, Twitter y Telegram
+- 👥 Soporte para múltiples agentes y salas
+- 📚 Ingestión e interacción sencilla con documentos
+- 💾 Memoria recuperable y almacenamiento de documentos
+- 🚀 Altamente extensible - cree sus propias acciones y clientes para expandir capacidades
+- ☁️ Soporta múltiples modelos, incluidos Llama local, OpenAI, Anthropic, Groq y más
+- 📦 Funciona perfectamente
 
 ## Usos
 
--   🤖 Chatbots
--   🕵️ Agentes autónomos
--   📈 Gestión de procesos empresariales
--   🎮 NPCs en videojuegos
+- 🤖 Chatbots
+- 🕵️ Agentes autónomos
+- 📈 Gestión de procesos empresariales
+- 🎮 NPCs en videojuegos
 
 # Primeros Pasos
 
 **Requisitos (OBLIGATORIOS):**
 
--   [Python 2.7+](https://www.python.org/downloads/)
--   [Node.js 23.3+](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
--   [pnpm](https://pnpm.io/installation)
+- [Python 2.7+](https://www.python.org/downloads/)
+- [Node.js 23.3+](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
+- [pnpm](https://pnpm.io/installation)
 
 ### Edite el archivo .env
 
--   Copie el archivo .env.example a .env y complete los valores apropiados
--   Edite las variables de entorno de TWITTER para agregar nombre de usuario y contraseña del bot
+- Copie el archivo .env.example a .env y complete los valores apropiados
+- Edite las variables de entorno de TWITTER para agregar nombre de usuario y contraseña del bot
 
 ### Edite el archivo de personaje
 
--   Revise el archivo `src/core/defaultCharacter.ts` - puede modificarlo
--   También puede cargar personajes con el comando `pnpm start --characters="path/to/your/character.json"` y ejecutar múltiples bots simultáneamente.
+- Revise el archivo `src/core/defaultCharacter.ts` - puede modificarlo
+- También puede cargar personajes con el comando `pnpm start --characters="path/to/your/character.json"` y ejecutar múltiples bots simultáneamente.
 
 Después de configurar el archivo .env y el archivo de personaje, puede iniciar el bot con:
 
@@ -54,15 +54,15 @@ Para evitar conflictos en el directorio central, se recomienda agregar acciones 
 
 ### Ejecutar con Llama
 
-Puede ejecutar modelos Llama 70B o 405B configurando la variable de ambiente `XAI_MODEL` en `meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo` o `meta-llama/Meta-Llama-3.1-405B-Instruct`
+Puede ejecutar modelos Llama 70B o 405B configurando la variable de ambiente para un proveedor que soporte estos modelos. Llama también es soportado localmente si no se configura otro proveedor.
 
 ### Ejecutar con Grok
 
-Puede ejecutar modelos Grok configurando la variable de ambiente `XAI_MODEL` en `grok-beta`
+Puede ejecutar modelos Grok configurando la variable de ambiente `GROK_API_KEY` y configurando "grok" como proveedor en el archivo de caracteres.
 
 ### Ejecutar con OpenAI
 
-Puede ejecutar modelos OpenAI configurando la variable de ambiente `XAI_MODEL` en `gpt-4o-mini` o `gpt-4o`
+Puede ejecutar modelos OpenAI configurando la variable de ambiente `OPENAI_API_KEY` y configurando "openai" como proveedor en el archivo de caracteres.
 
 ## Requisitos Adicionales
 
@@ -99,10 +99,6 @@ TWITTER_USERNAME= # Nombre de usuario de la cuenta
 TWITTER_PASSWORD= # Contraseña de la cuenta
 TWITTER_EMAIL= # Correo electrónico de la cuenta
 
-X_SERVER_URL=
-XAI_API_KEY=
-XAI_MODEL=
-
 # Para consultar a Claude
 ANTHROPIC_API_KEY=
 
@@ -121,7 +117,7 @@ BIRDEYE_API_KEY=
 
 SOL_ADDRESS=So11111111111111111111111111111111111111112
 SLIPPAGE=1
-RPC_URL=https://api.mainnet-beta.solana.com
+SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
 HELIUS_API_KEY=
 
 ## Telegram
@@ -145,7 +141,7 @@ Asegúrese de tener instalado el CUDA Toolkit, incluyendo cuDNN y cuBLAS.
 
 ### Ejecución local
 
-Agregue XAI_MODEL y configúrelo con una de las opciones de [Ejecutar con Llama](#ejecutar-con-llama) - puede dejar X_SERVER_URL y XAI_API_KEY en blanco, descargará el modelo de HuggingFace y realizará consultas localmente
+Agregue XAI_MODEL y configúrelo con una de las opciones de [Ejecutar con Llama](#ejecutar-con-llama) - puede dejar XAI_API_KEY en blanco, descargará el modelo de HuggingFace y realizará consultas localmente
 
 # Clientes
 
@@ -173,9 +169,9 @@ pnpm test:sqljs    # Ejecutar pruebas con SQL.js
 
 Las pruebas están escritas con Jest y se pueden encontrar en archivos `src/**/*.test.ts`. El entorno de pruebas está configurado para:
 
--   Cargar variables de ambiente desde `.env.test`
--   Usar un límite de 2 minutos para pruebas de larga duración
--   Soportar módulos ESM
--   Ejecutar pruebas en secuencia (--runInBand)
+- Cargar variables de ambiente desde `.env.test`
+- Usar un límite de 2 minutos para pruebas de larga duración
+- Soportar módulos ESM
+- Ejecutar pruebas en secuencia (--runInBand)
 
 Para crear nuevas pruebas, agregue un archivo `.test.ts` junto al código que está probando.

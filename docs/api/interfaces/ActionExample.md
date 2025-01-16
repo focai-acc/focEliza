@@ -1,4 +1,4 @@
-[@elizaos/core v0.1.7-alpha.1](../index.md) / ActionExample
+[@elizaos/core v0.1.7](../index.md) / ActionExample
 
 # Interface: ActionExample
 
@@ -16,7 +16,7 @@ User associated with the example
 
 [packages/core/src/types.ts:39](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L39)
 
-***
+---
 
 ### content
 

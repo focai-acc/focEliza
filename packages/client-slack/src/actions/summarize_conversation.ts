@@ -4,6 +4,7 @@ import {
     splitChunks,
     trimTokens,
     parseJSONObjectFromText,
+    getModelSettings,
 } from "@elizaos/core";
 import { models } from "@elizaos/core";
 import { getActorDetails } from "@elizaos/core";
@@ -265,8 +266,11 @@ const summarizeAction: Action = {
 
         let currentSummary = "";
 
-        const model = models[runtime.character.modelProvider];
-        const chunkSize = model.settings.maxOutputTokens;
+        const modelSettings = getModelSettings(
+            runtime.character.modelProvider,
+            ModelClass.SMALL
+        );
+        const chunkSize = modelSettings.maxOutputTokens;
 
         const chunks = await splitChunks(formattedMemories, chunkSize, 0);
 

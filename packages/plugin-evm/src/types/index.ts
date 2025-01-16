@@ -101,6 +101,7 @@ export interface EvmPluginConfig {
         cronos?: string;
         gnosis?: string;
         fantom?: string;
+        fraxtal?: string;
         klaytn?: string;
         celo?: string;
         moonbeam?: string;

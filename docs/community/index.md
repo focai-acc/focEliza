@@ -43,4 +43,3 @@ We invite you to explore the various sections of our documentation to learn more
 - [FAQ and Support](/community/faq-and-support/): Find answers to common questions and get support
 
 Join us on this exciting journey as we push the boundaries of what's possible with AI and decentralized technologies. Together, let's build a future powered by intelligent, autonomous agents.
-

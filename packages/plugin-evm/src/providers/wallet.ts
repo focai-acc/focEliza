@@ -5,7 +5,14 @@ import {
     http,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { type IAgentRuntime, type Provider, type Memory, type State, type ICacheManager, elizaLogger } from "@elizaos/core";
+import {
+    type IAgentRuntime,
+    type Provider,
+    type Memory,
+    type State,
+    type ICacheManager,
+    elizaLogger,
+} from "@elizaos/core";
 import type {
     Address,
     WalletClient,
@@ -27,7 +34,7 @@ export class WalletProvider {
     private cacheKey: string = "evm/wallet";
     private currentChain: SupportedChain = "mainnet";
     private CACHE_EXPIRY_SEC = 5;
-    chains: Record<string, Chain> = { mainnet: viemChains.mainnet };
+    chains: Record<string, Chain> = { ...viemChains };
     account: PrivateKeyAccount;
 
     constructor(
@@ -91,7 +98,10 @@ export class WalletProvider {
         const cacheKey = "walletBalance_" + this.currentChain;
         const cachedData = await this.getCachedData<string>(cacheKey);
         if (cachedData) {
-            elizaLogger.log("Returning cached wallet balance for chain: " + this.currentChain);
+            elizaLogger.log(
+                "Returning cached wallet balance for chain: " +
+                    this.currentChain
+            );
             return cachedData;
         }
 
@@ -102,7 +112,10 @@ export class WalletProvider {
             });
             const balanceFormatted = formatUnits(balance, 18);
             this.setCachedData<string>(cacheKey, balanceFormatted);
-            elizaLogger.log("Wallet balance cached for chain: ", this.currentChain);
+            elizaLogger.log(
+                "Wallet balance cached for chain: ",
+                this.currentChain
+            );
             return balanceFormatted;
         } catch (error) {
             console.error("Error getting wallet balance:", error);
@@ -283,7 +296,11 @@ export const initWalletProvider = async (runtime: IAgentRuntime) => {
             walletSecretSalt,
             runtime.agentId
         );
-        return new WalletProvider(deriveKeyResult.keypair, runtime.cacheManager, chains);
+        return new WalletProvider(
+            deriveKeyResult.keypair,
+            runtime.cacheManager,
+            chains
+        );
     } else {
         const privateKey = runtime.getSetting(
             "EVM_PRIVATE_KEY"

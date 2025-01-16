@@ -1,0 +1,21 @@
+{
+    "name": "@elizaos/plugin-anyone",
+    "version": "0.1.7-alpha.2",
+    "main": "dist/index.js",
+    "type": "module",
+    "types": "dist/index.d.ts",
+    "dependencies": {
+        "@anyone-protocol/anyone-client": "^0.4.3",
+        "@elizaos/core": "workspace:*",
+        "axios": "^1.7.9",
+        "tsup": "8.3.5"
+    },
+    "scripts": {
+        "build": "tsup --format esm --dts",
+        "dev": "tsup --format esm --dts --watch",
+        "lint": "eslint --fix  --cache ."
+    },
+    "peerDependencies": {
+        "whatwg-url": "7.1.0"
+    }
+}

@@ -55,7 +55,6 @@ async function handler(
     state: State | undefined,
     options: { [key: string]: unknown } = { onlyInProgress: true }
 ): Promise<Goal[]> {
-
     state = (await runtime.composeState(message)) as State;
     const context = composeContext({
         state,

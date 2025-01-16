@@ -137,51 +137,63 @@ export enum ModelClass {
 }
 
 /**
+ * Model settings
+ */
+export type ModelSettings = {
+    /** Model name */
+    name: string;
+
+    /** Maximum input tokens */
+    maxInputTokens: number;
+
+    /** Maximum output tokens */
+    maxOutputTokens: number;
+
+    /** Optional frequency penalty */
+    frequency_penalty?: number;
+
+    /** Optional presence penalty */
+    presence_penalty?: number;
+
+    /** Optional repetition penalty */
+    repetition_penalty?: number;
+
+    /** Stop sequences */
+    stop: string[];
+
+    /** Temperature setting */
+    temperature: number;
+
+    /** Optional telemetry configuration (experimental) */
+    experimental_telemetry?: TelemetrySettings;
+};
+
+/** Image model settings */
+export type ImageModelSettings = {
+    name: string;
+    steps?: number;
+};
+
+/** Embedding model settings */
+export type EmbeddingModelSettings = {
+    name: string;
+    dimensions?: number;
+};
+
+/**
  * Configuration for an AI model
  */
 export type Model = {
     /** Optional API endpoint */
     endpoint?: string;
 
-    /** Model settings */
-    settings: {
-        /** Maximum input tokens */
-        maxInputTokens: number;
-
-        /** Maximum output tokens */
-        maxOutputTokens: number;
-
-        /** Optional frequency penalty */
-        frequency_penalty?: number;
-
-        /** Optional presence penalty */
-        presence_penalty?: number;
-
-        /** Optional repetition penalty */
-        repetition_penalty?: number;
-
-        /** Stop sequences */
-        stop: string[];
-
-        /** Temperature setting */
-        temperature: number;
-
-        /** Optional telemetry configuration (experimental) */
-        experimental_telemetry?: TelemetrySettings;
-    };
-
-    /** Optional image generation settings */
-    imageSettings?: {
-        steps?: number;
-    };
-
     /** Model names by size class */
     model: {
-        [ModelClass.SMALL]: string;
-        [ModelClass.MEDIUM]: string;
-        [ModelClass.LARGE]: string;
-        [ModelClass.EMBEDDING]?: string;
-        [ModelClass.IMAGE]?: string;
+        [ModelClass.SMALL]?: ModelSettings;
+        [ModelClass.MEDIUM]?: ModelSettings;
+        [ModelClass.LARGE]?: ModelSettings;
+        [ModelClass.EMBEDDING]?: EmbeddingModelSettings;
+        [ModelClass.IMAGE]?: ImageModelSettings;
     };
 };
 
@@ -211,6 +223,7 @@ export type Models = {
     [ModelProviderName.NANOGPT]: Model;
     [ModelProviderName.HYPERBOLIC]: Model;
     [ModelProviderName.VENICE]: Model;
+    [ModelProviderName.NINETEEN_AI]: Model;
     [ModelProviderName.AKASH_CHAT_API]: Model;
     [ModelProviderName.LIVEPEER]: Model;
 };
@@ -241,8 +254,11 @@ export enum ModelProviderName {
     NANOGPT = "nanogpt",
     HYPERBOLIC = "hyperbolic",
     VENICE = "venice",
+    NINETEEN_AI = "nineteen_ai",
     AKASH_CHAT_API = "akash_chat_api",
     LIVEPEER = "livepeer",
+    LETZAI = "letzai",
+    INFERA = "infera",
 }
 
 /**
@@ -325,6 +341,8 @@ export interface State {
     knowledge?: string;
     /** Optional knowledge data */
     knowledgeData?: KnowledgeItem[];
+    /** Optional knowledge data */
+    ragKnowledgeData?: RAGKnowledgeItem[];
 
     /** Additional dynamic properties */
     [key: string]: unknown;
@@ -665,6 +683,8 @@ export interface ModelConfiguration {
     experimental_telemetry?: TelemetrySettings;
 }
 
+export type TemplateType = string | ((options: { state: State }) => string);
+
 /**
  * Configuration for an agent character
  */
@@ -695,30 +715,30 @@ export type Character = {
 
     /** Optional prompt templates */
     templates?: {
-        goalsTemplate?: string;
-        factsTemplate?: string;
-        messageHandlerTemplate?: string;
-        shouldRespondTemplate?: string;
-        continueMessageHandlerTemplate?: string;
-        evaluationTemplate?: string;
-        twitterSearchTemplate?: string;
-        twitterActionTemplate?: string;
-        twitterPostTemplate?: string;
-        twitterMessageHandlerTemplate?: string;
-        twitterShouldRespondTemplate?: string;
-        farcasterPostTemplate?: string;
-        lensPostTemplate?: string;
-        farcasterMessageHandlerTemplate?: string;
-        lensMessageHandlerTemplate?: string;
-        farcasterShouldRespondTemplate?: string;
-        lensShouldRespondTemplate?: string;
-        telegramMessageHandlerTemplate?: string;
-        telegramShouldRespondTemplate?: string;
-        discordVoiceHandlerTemplate?: string;
-        discordShouldRespondTemplate?: string;
-        discordMessageHandlerTemplate?: string;
-        slackMessageHandlerTemplate?: string;
-        slackShouldRespondTemplate?: string;
+        goalsTemplate?: TemplateType;
+        factsTemplate?: TemplateType;
+        messageHandlerTemplate?: TemplateType;
+        shouldRespondTemplate?: TemplateType;
+        continueMessageHandlerTemplate?: TemplateType;
+        evaluationTemplate?: TemplateType;
+        twitterSearchTemplate?: TemplateType;
+        twitterActionTemplate?: TemplateType;
+        twitterPostTemplate?: TemplateType;
+        twitterMessageHandlerTemplate?: TemplateType;
+        twitterShouldRespondTemplate?: TemplateType;
+        farcasterPostTemplate?: TemplateType;
+        lensPostTemplate?: TemplateType;
+        farcasterMessageHandlerTemplate?: TemplateType;
+        lensMessageHandlerTemplate?: TemplateType;
+        farcasterShouldRespondTemplate?: TemplateType;
+        lensShouldRespondTemplate?: TemplateType;
+        telegramMessageHandlerTemplate?: TemplateType;
+        telegramShouldRespondTemplate?: TemplateType;
+        discordVoiceHandlerTemplate?: TemplateType;
+        discordShouldRespondTemplate?: TemplateType;
+        discordMessageHandlerTemplate?: TemplateType;
+        slackMessageHandlerTemplate?: TemplateType;
+        slackShouldRespondTemplate?: TemplateType;
     };
 
     /** Character biography */
@@ -740,7 +760,7 @@ export type Character = {
     adjectives: string[];
 
     /** Optional knowledge base */
-    knowledge?: string[];
+    knowledge?: (string | { path: string; shared?: boolean })[];
 
     /** Supported client platforms */
     clients: Clients[];
@@ -788,6 +808,7 @@ export type Character = {
             [key: string]: any[];
         };
         transcription?: TranscriptionProvider;
+        ragKnowledge?: boolean;
     };
 
     /** Optional client-specific config */
@@ -1000,6 +1021,26 @@ export interface IDatabaseAdapter {
     }): Promise<Relationship | null>;
 
     getRelationships(params: { userId: UUID }): Promise<Relationship[]>;
+
+    getKnowledge(params: {
+        id?: UUID;
+        agentId: UUID;
+        limit?: number;
+        query?: string;
+        conversationContext?: string;
+    }): Promise<RAGKnowledgeItem[]>;
+
+    searchKnowledge(params: {
+        agentId: UUID;
+        embedding: Float32Array;
+        match_threshold: number;
+        match_count: number;
+        searchText?: string;
+    }): Promise<RAGKnowledgeItem[]>;
+
+    createKnowledge(knowledge: RAGKnowledgeItem): Promise<void>;
+    removeKnowledge(id: UUID): Promise<void>;
+    clearKnowledge(agentId: UUID, shared?: boolean): Promise<void>;
 }
 
 export interface IDatabaseCacheAdapter {
@@ -1055,6 +1096,35 @@ export interface IMemoryManager {
     removeAllMemories(roomId: UUID): Promise<void>;
 
     countMemories(roomId: UUID, unique?: boolean): Promise<number>;
+}
+
+export interface IRAGKnowledgeManager {
+    runtime: IAgentRuntime;
+    tableName: string;
+
+    getKnowledge(params: {
+        query?: string;
+        id?: UUID;
+        limit?: number;
+        conversationContext?: string;
+        agentId?: UUID;
+    }): Promise<RAGKnowledgeItem[]>;
+    createKnowledge(item: RAGKnowledgeItem): Promise<void>;
+    removeKnowledge(id: UUID): Promise<void>;
+    searchKnowledge(params: {
+        agentId: UUID;
+        embedding: Float32Array | number[];
+        match_threshold?: number;
+        match_count?: number;
+        searchText?: string;
+    }): Promise<RAGKnowledgeItem[]>;
+    clearKnowledge(shared?: boolean): Promise<void>;
+    processFile(file: {
+        path: string;
+        content: string;
+        type: "pdf" | "md" | "txt";
+        isShared: boolean;
+    }): Promise<void>;
 }
 
 export type CacheOptions = {
@@ -1116,6 +1186,7 @@ export interface IAgentRuntime {
     descriptionManager: IMemoryManager;
     documentsManager: IMemoryManager;
     knowledgeManager: IMemoryManager;
+    ragKnowledgeManager: IRAGKnowledgeManager;
     loreManager: IMemoryManager;
 
     cacheManager: ICacheManager;
@@ -1154,7 +1225,7 @@ export interface IAgentRuntime {
         state?: State,
         didRespond?: boolean,
         callback?: HandlerCallback
-    ): Promise<string[]>;
+    ): Promise<string[] | null>;
 
     ensureParticipantExists(userId: UUID, roomId: UUID): Promise<void>;
 
@@ -1262,6 +1333,11 @@ export interface IAwsS3Service extends Service {
     generateSignedUrl(fileName: string, expiresIn: number): Promise<string>;
 }
 
+export interface ITeeLogService extends Service {
+    getInstance(): ITeeLogService;
+    log(agentId: string, roomId: string, userId: string, type: string, content: string): Promise<boolean>;
+}
+
 export type SearchImage = {
     url: string;
     description?: string;
@@ -1296,6 +1372,8 @@ export enum ServiceType {
     AWS_S3 = "aws_s3",
     BUTTPLUG = "buttplug",
     SLACK = "slack",
+    TEE_LOG = "tee_log",
+    GOPLUS_SECURITY = "goplus_security",
 }
 
 export enum LoggingLevel {
@@ -1308,6 +1386,28 @@ export type KnowledgeItem = {
     id: UUID;
     content: Content;
 };
+
+export interface RAGKnowledgeItem {
+    id: UUID;
+    agentId: UUID;
+    content: {
+        text: string;
+        metadata?: {
+            isMain?: boolean;
+            isChunk?: boolean;
+            originalId?: UUID;
+            chunkIndex?: number;
+            source?: string;
+            type?: string;
+            isShared?: boolean;
+            [key: string]: unknown;
+        };
+    };
+    embedding?: Float32Array;
+    createdAt?: number;
+    similarity?: number;
+    score?: number;
+}
 
 export interface ActionResponse {
     like: boolean;
@@ -1324,6 +1424,7 @@ export interface ISlackService extends Service {
  * Available verifiable inference providers
  */
 export enum VerifiableInferenceProvider {
+    OPACITY = "opacity",
     PRIMUS = "primus",
 }
 
@@ -1391,4 +1492,9 @@ export enum TranscriptionProvider {
     OpenAI = "openai",
     Deepgram = "deepgram",
     Local = "local",
+}
+
+export enum ActionTimelineType {
+    ForYou = "foryou",
+    Following = "following",
 }

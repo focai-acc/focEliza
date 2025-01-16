@@ -31,3 +31,4 @@ export const bootstrapPlugin: Plugin = {
     evaluators: [factEvaluator, goalEvaluator],
     providers: [boredomProvider, timeProvider, factsProvider],
 };
+export default bootstrapPlugin;

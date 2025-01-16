@@ -1,4 +1,4 @@
-import { WEB3_STORAGE_API_HOST } from '../constants/apis';
+import { WEB3_STORAGE_API_HOST } from "../constants/apis";
 
 interface UploadResponse {
     success: boolean;

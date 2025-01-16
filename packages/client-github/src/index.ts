@@ -83,7 +83,9 @@ export class GitHubClient {
                 );
                 return;
             } catch {
-                elizaLogger.error(`Failed to clone repository from ${repositoryUrl}. Retrying...`);
+                elizaLogger.error(
+                    `Failed to clone repository from ${repositoryUrl}. Retrying...`
+                );
                 retries++;
                 if (retries === maxRetries) {
                     throw new Error(

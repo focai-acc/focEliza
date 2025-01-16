@@ -15,8 +15,9 @@ import { trustScoreProvider } from "./providers/trustScoreProvider.ts";
 import { trustEvaluator } from "./evaluators/trust.ts";
 import { TokenProvider } from "./providers/token.ts";
 import { WalletProvider } from "./providers/wallet.ts";
+import { getTokenBalance, getTokenBalances } from "./providers/tokenUtils.ts";
 
-export { TokenProvider, WalletProvider };
+export { TokenProvider, WalletProvider, getTokenBalance, getTokenBalances };
 
 export const solanaPlugin: Plugin = {
     name: "solana",

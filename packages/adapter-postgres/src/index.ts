@@ -24,6 +24,7 @@ import {
     getEmbeddingConfig,
     DatabaseAdapter,
     EmbeddingProvider,
+    RAGKnowledgeItem
 } from "@elizaos/core";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -183,6 +184,27 @@ export class PostgresDatabaseAdapter
         }, "query");
     }
 
+    private async validateVectorSetup(): Promise<boolean> {
+        try {
+            const vectorExt = await this.query(`
+                SELECT 1 FROM pg_extension WHERE extname = 'vector'
+            `);
+            const hasVector = vectorExt.rows.length > 0;
+
+            if (!hasVector) {
+                elizaLogger.error("Vector extension not found in database");
+                return false;
+            }
+
+            return true;
+        } catch (error) {
+            elizaLogger.error("Failed to validate vector extension:", {
+                error: error instanceof Error ? error.message : String(error)
+            });
+            return false;
+        }
+    }
+
     async init() {
         await this.testConnection();
 
@@ -200,21 +222,31 @@ export class PostgresDatabaseAdapter
                 await client.query("SET app.use_openai_embedding = 'false'");
                 await client.query("SET app.use_ollama_embedding = 'true'");
                 await client.query("SET app.use_gaianet_embedding = 'false'");
-            } else if (embeddingConfig.provider === EmbeddingProvider.GaiaNet){
+            } else if (embeddingConfig.provider === EmbeddingProvider.GaiaNet) {
                 await client.query("SET app.use_openai_embedding = 'false'");
                 await client.query("SET app.use_ollama_embedding = 'false'");
                 await client.query("SET app.use_gaianet_embedding = 'true'");
             } else {
                 await client.query("SET app.use_openai_embedding = 'false'");
                 await client.query("SET app.use_ollama_embedding = 'false'");
-                await client.query("SET app.use_gaianet_embedding = 'false'");
             }
 
-            const schema = fs.readFileSync(
-                path.resolve(__dirname, "../schema.sql"),
-                "utf8"
-            );
-            await client.query(schema);
+            // Check if schema already exists (check for a core table)
+            const { rows } = await client.query(`
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables
+                    WHERE table_name = 'rooms'
+                );
+            `);
+
+            if (!rows[0].exists || !await this.validateVectorSetup()) {
+                elizaLogger.info("Applying database schema - tables or vector extension missing");
+                const schema = fs.readFileSync(
+                    path.resolve(__dirname, "../schema.sql"),
+                    "utf8"
+                );
+                await client.query(schema);
+            }
 
             await client.query("COMMIT");
         } catch (error) {
@@ -1456,6 +1488,182 @@ export class PostgresDatabaseAdapter
                 return false;
             }
         }, "deleteCache");
+    }
+
+    async getKnowledge(params: {
+        id?: UUID;
+        agentId: UUID;
+        limit?: number;
+        query?: string;
+    }): Promise<RAGKnowledgeItem[]> {
+        return this.withDatabase(async () => {
+            let sql = `SELECT * FROM knowledge WHERE ("agentId" = $1 OR "isShared" = true)`;
+            const queryParams: any[] = [params.agentId];
+            let paramCount = 1;
+
+            if (params.id) {
+                paramCount++;
+                sql += ` AND id = $${paramCount}`;
+                queryParams.push(params.id);
+            }
+
+            if (params.limit) {
+                paramCount++;
+                sql += ` LIMIT $${paramCount}`;
+                queryParams.push(params.limit);
+            }
+
+            const { rows } = await this.pool.query(sql, queryParams);
+
+            return rows.map(row => ({
+                id: row.id,
+                agentId: row.agentId,
+                content: typeof row.content === 'string' ? JSON.parse(row.content) : row.content,
+                embedding: row.embedding ? new Float32Array(row.embedding) : undefined,
+                createdAt: row.createdAt.getTime()
+            }));
+        }, "getKnowledge");
+    }
+
+    async searchKnowledge(params: {
+        agentId: UUID;
+        embedding: Float32Array;
+        match_threshold: number;
+        match_count: number;
+        searchText?: string;
+    }): Promise<RAGKnowledgeItem[]> {
+        return this.withDatabase(async () => {
+            const cacheKey = `embedding_${params.agentId}_${params.searchText}`;
+            const cachedResult = await this.getCache({
+                key: cacheKey,
+                agentId: params.agentId
+            });
+
+            if (cachedResult) {
+                return JSON.parse(cachedResult);
+            }
+
+            const vectorStr = `[${Array.from(params.embedding).join(",")}]`;
+
+            const sql = `
+                WITH vector_scores AS (
+                    SELECT id,
+                        1 - (embedding <-> $1::vector) as vector_score
+                    FROM knowledge
+                    WHERE ("agentId" IS NULL AND "isShared" = true) OR "agentId" = $2
+                    AND embedding IS NOT NULL
+                ),
+                keyword_matches AS (
+                    SELECT id,
+                    CASE
+                        WHEN content->>'text' ILIKE $3 THEN 3.0
+                        ELSE 1.0
+                    END *
+                    CASE
+                        WHEN (content->'metadata'->>'isChunk')::boolean = true THEN 1.5
+                        WHEN (content->'metadata'->>'isMain')::boolean = true THEN 1.2
+                        ELSE 1.0
+                    END as keyword_score
+                    FROM knowledge
+                    WHERE ("agentId" IS NULL AND "isShared" = true) OR "agentId" = $2
+                )
+                SELECT k.*,
+                    v.vector_score,
+                    kw.keyword_score,
+                    (v.vector_score * kw.keyword_score) as combined_score
+                FROM knowledge k
+                JOIN vector_scores v ON k.id = v.id
+                LEFT JOIN keyword_matches kw ON k.id = kw.id
+                WHERE ("agentId" IS NULL AND "isShared" = true) OR k."agentId" = $2
+                AND (
+                    v.vector_score >= $4
+                    OR (kw.keyword_score > 1.0 AND v.vector_score >= 0.3)
+                )
+                ORDER BY combined_score DESC
+                LIMIT $5
+            `;
+
+            const { rows } = await this.pool.query(sql, [
+                vectorStr,
+                params.agentId,
+                `%${params.searchText || ''}%`,
+                params.match_threshold,
+                params.match_count
+            ]);
+
+            const results = rows.map(row => ({
+                id: row.id,
+                agentId: row.agentId,
+                content: typeof row.content === 'string' ? JSON.parse(row.content) : row.content,
+                embedding: row.embedding ? new Float32Array(row.embedding) : undefined,
+                createdAt: row.createdAt.getTime(),
+                similarity: row.combined_score
+            }));
+
+            await this.setCache({
+                key: cacheKey,
+                agentId: params.agentId,
+                value: JSON.stringify(results)
+            });
+
+            return results;
+        }, "searchKnowledge");
+    }
+
+    async createKnowledge(knowledge: RAGKnowledgeItem): Promise<void> {
+        return this.withDatabase(async () => {
+            const client = await this.pool.connect();
+            try {
+                await client.query('BEGIN');
+
+                const sql = `
+                    INSERT INTO knowledge (
+                        id, "agentId", content, embedding, "createdAt",
+                        "isMain", "originalId", "chunkIndex", "isShared"
+                    ) VALUES ($1, $2, $3, $4, to_timestamp($5/1000.0), $6, $7, $8, $9)
+                    ON CONFLICT (id) DO NOTHING
+                `;
+
+                const metadata = knowledge.content.metadata || {};
+                const vectorStr = knowledge.embedding ?
+                `[${Array.from(knowledge.embedding).join(",")}]` : null;
+
+                await client.query(sql, [
+                    knowledge.id,
+                    metadata.isShared ? null : knowledge.agentId,
+                    knowledge.content,
+                    vectorStr,
+                    knowledge.createdAt || Date.now(),
+                    metadata.isMain || false,
+                    metadata.originalId || null,
+                    metadata.chunkIndex || null,
+                    metadata.isShared || false
+                ]);
+
+                await client.query('COMMIT');
+            } catch (error) {
+                await client.query('ROLLBACK');
+                throw error;
+            } finally {
+                client.release();
+            }
+        }, "createKnowledge");
+    }
+
+    async removeKnowledge(id: UUID): Promise<void> {
+        return this.withDatabase(async () => {
+            await this.pool.query('DELETE FROM knowledge WHERE id = $1', [id]);
+        }, "removeKnowledge");
+    }
+
+    async clearKnowledge(agentId: UUID, shared?: boolean): Promise<void> {
+        return this.withDatabase(async () => {
+            const sql = shared ?
+                'DELETE FROM knowledge WHERE ("agentId" = $1 OR "isShared" = true)' :
+                'DELETE FROM knowledge WHERE "agentId" = $1';
+
+            await this.pool.query(sql, [agentId]);
+        }, "clearKnowledge");
     }
 }
 

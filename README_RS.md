@@ -4,38 +4,38 @@
 
 ## Funkcionalnosti
 
--   🛠 Kompletni konektori za Discord, Twitter i Telegram
--   👥 Podrška za više agenata i soba
--   📚 Jednostavna ingestija i interakcija sa dokumentima
--   💾 Memorija koja se može povratiti i skladištenje dokumenata
--   🚀 Visoko proširivo - kreirajte sopstvene akcije i klijente za proširenje mogućnosti
--   ☁️ Podržava više modela, uključujući Llama lokalno, OpenAI, Anthropic, Groq i više
--   📦 Radi besprekorno
+- 🛠 Kompletni konektori za Discord, Twitter i Telegram
+- 👥 Podrška za više agenata i soba
+- 📚 Jednostavna ingestija i interakcija sa dokumentima
+- 💾 Memorija koja se može povratiti i skladištenje dokumenata
+- 🚀 Visoko proširivo - kreirajte sopstvene akcije i klijente za proširenje mogućnosti
+- ☁️ Podržava više modela, uključujući Llama lokalno, OpenAI, Anthropic, Groq i više
+- 📦 Radi besprekorno
 
 ## Upotrebe
 
--   🤖 Chatbotovi
--   🕵️ Autonomni agenti
--   📈 Upravljanje poslovnim procesima
--   🎮 NPC-ovi u video igrama
+- 🤖 Chatbotovi
+- 🕵️ Autonomni agenti
+- 📈 Upravljanje poslovnim procesima
+- 🎮 NPC-ovi u video igrama
 
 # Prvi Koraci
 
 **Zahtevi (OBAVEZNI):**
 
--   [Python 2.7+](https://www.python.org/downloads/)
--   [Node.js 23.3+](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
--   [pnpm](https://pnpm.io/installation)
+- [Python 2.7+](https://www.python.org/downloads/)
+- [Node.js 23.3+](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
+- [pnpm](https://pnpm.io/installation)
 
 ### Uredite .env datoteku
 
--   Kopirajte datoteku .env.example u .env i popunite odgovarajuće vrednosti
--   Uredite TWITTER promenljive okruženja da dodate korisničko ime i lozinku bota
+- Kopirajte datoteku .env.example u .env i popunite odgovarajuće vrednosti
+- Uredite TWITTER promenljive okruženja da dodate korisničko ime i lozinku bota
 
 ### Uredite datoteku karaktera
 
--   Pregledajte datoteku `src/core/defaultCharacter.ts` - možete je modifikovati
--   Takođe možete učitati karaktere sa komandom `pnpm start --characters="path/to/your/character.json"` i pokrenuti više botova istovremeno.
+- Pregledajte datoteku `src/core/defaultCharacter.ts` - možete je modifikovati
+- Takođe možete učitati karaktere sa komandom `pnpm start --characters="path/to/your/character.json"` i pokrenuti više botova istovremeno.
 
 Nakon što konfigurišete .env datoteku i datoteku karaktera, možete pokrenuti bota sa:
 
@@ -99,7 +99,6 @@ TWITTER_USERNAME= # Korisničko ime naloga
 TWITTER_PASSWORD= # Lozinka naloga
 TWITTER_EMAIL= # Email naloga
 
-X_SERVER_URL=
 XAI_API_KEY=
 XAI_MODEL=
 
@@ -121,7 +120,7 @@ BIRDEYE_API_KEY=
 
 SOL_ADDRESS=So11111111111111111111111111111111111111112
 SLIPPAGE=1
-RPC_URL=https://api.mainnet-beta.solana.com
+SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
 HELIUS_API_KEY=
 
 ## Telegram
@@ -145,7 +144,7 @@ Uverite se da imate instaliran CUDA Toolkit, uključujući cuDNN i cuBLAS.
 
 ### Lokalno Pokretanje
 
-Dodajte XAI_MODEL i konfigurišite ga sa jednom od opcija iz [Pokretanje sa Llama](#pokretanje-sa-llama) - možete ostaviti X_SERVER_URL i XAI_API_KEY praznim, preuzeće model sa HuggingFace i izvršiti upite lokalno
+Dodajte XAI_MODEL i konfigurišite ga sa jednom od opcija iz [Pokretanje sa Llama](#pokretanje-sa-llama) - možete ostaviti XAI_API_KEY praznim, preuzeće model sa HuggingFace i izvršiti upite lokalno
 
 # Klijenti
 
@@ -173,9 +172,9 @@ pnpm test:sqljs    # Pokreni testove sa SQL.js
 
 Testovi su napisani sa Jest i mogu se naći u datotekama `src/**/*.test.ts`. Testno okruženje je konfigurisano za:
 
--   Učitavanje promenljivih okruženja iz `.env.test`
--   Korišćenje limita od 2 minuta za dugotrajne testove
--   Podršku za ESM module
--   Pokretanje testova u sekvenci (--runInBand)
+- Učitavanje promenljivih okruženja iz `.env.test`
+- Korišćenje limita od 2 minuta za dugotrajne testove
+- Podršku za ESM module
+- Pokretanje testova u sekvenci (--runInBand)
 
 Za kreiranje novih testova, dodajte `.test.ts` datoteku pored koda koji testirate.
