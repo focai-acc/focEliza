@@ -7,6 +7,7 @@ import { LensAgentClient } from "@elizaos/client-lens";
 import { SlackClientInterface } from "@elizaos/client-slack";
 import { TelegramClientInterface } from "@elizaos/client-telegram";
 import { TwitterClientInterface } from "@elizaos/client-twitter";
+import { PrimusAdapter } from "@elizaos/plugin-primus";
 import {
     AgentRuntime,
     CacheManager,
@@ -514,6 +515,22 @@ export async function createAgent(
         goatPlugin = await createGoatPlugin((secret) =>
             getSecret(character, secret)
         );
+    }
+
+    let verifiableInferenceAdapter;
+    if (
+        process.env.PRIMUS_APP_ID &&
+        process.env.PRIMUS_APP_SECRET &&
+        process.env.VERIFIABLE_INFERENCE_ENABLED === "true"
+    ){
+        verifiableInferenceAdapter = new PrimusAdapter({
+            appId: process.env.PRIMUS_APP_ID,
+            appSecret: process.env.PRIMUS_APP_SECRET,
+            attMode: "proxytls",
+            modelProvider: character.modelProvider,
+            token,
+        });
+        elizaLogger.log("Verifiable inference primus adapter initialized");
     }
 
     return new AgentRuntime({
