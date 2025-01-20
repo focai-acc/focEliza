@@ -43,6 +43,7 @@ import { DirectClient } from "@elizaos/client-direct";
 import { ThreeDGenerationPlugin } from "@elizaos/plugin-3d-generation";
 import { abstractPlugin } from "@elizaos/plugin-abstract";
 import { alloraPlugin } from "@elizaos/plugin-allora";
+import { focAuthPlugin } from "@elizaos/plugin-foc-auth";
 import { aptosPlugin } from "@elizaos/plugin-aptos";
 import { artheraPlugin } from "@elizaos/plugin-arthera";
 import { availPlugin } from "@elizaos/plugin-avail";
@@ -854,6 +855,7 @@ export async function createAgent(
             getSecret(character, "QUAI_PRIVATE_KEY")
                 ? quaiPlugin
                 : null,
+            focAuthPlugin
         ].filter(Boolean),
         providers: [],
         actions: [],

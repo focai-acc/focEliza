@@ -88,6 +88,7 @@
         "@elizaos/plugin-obsidian": "workspace:*",
         "@elizaos/plugin-arthera": "workspace:*",
         "@elizaos/plugin-allora": "workspace:*",
+        "@elizaos/plugin-foc-auth": "workspace:*",
         "@elizaos/plugin-opacity": "workspace:*",
         "@elizaos/plugin-hyperliquid": "workspace:*",
         "@elizaos/plugin-akash": "workspace:*",

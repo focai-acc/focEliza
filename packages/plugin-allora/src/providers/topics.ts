@@ -42,11 +42,11 @@ export class TopicsProvider implements Provider {
         const cacheKey = "allora-topics";
         const cachedValue = this.cache.get<AlloraTopic[]>(cacheKey);
 
-        // If the topics are aready cached, return them
-        if (cachedValue) {
-            elizaLogger.info("Retrieving Allora topics from cache");
-            return cachedValue;
-        }
+        // // If the topics are aready cached, return them
+        // if (cachedValue) {
+        //     elizaLogger.info("Retrieving Allora topics from cache");
+        //     return cachedValue;
+        // }
 
         // If the topics are not cached, retrieve them from the Allora API
         const alloraApiKey = runtime.getSetting("ALLORA_API_KEY");
