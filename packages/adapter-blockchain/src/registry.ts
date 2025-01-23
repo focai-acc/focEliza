@@ -5,6 +5,7 @@ import { elizaLogger } from '@ai16z/eliza';
 export class Registry {
     private contract;
     private account;
+    private web3;
 
     constructor() {
         const contractAddress = process.env.BLOCKSTORE_REGISTRY_ADDR;
@@ -20,6 +21,7 @@ export class Registry {
         const account = web3.eth.accounts.privateKeyToAccount(key);
         web3.eth.accounts.wallet.add(account);
         web3.eth.defaultAccount = account.address;
+        this.web3 = web3;
         this.account = account;
 
         this.contract = new web3.eth.Contract(RegistryABI, contractAddress);
@@ -111,11 +113,22 @@ export class Registry {
     // Update a value in the contract using a specified method.
     private async updateInContract(methodName: string, params: any[]): Promise<boolean> {
         try {
-            await this.contract.methods[methodName](
-                ...params
-            ).send(
-                { from: this.account.address }
-            );
+            const method = this.contract.methods[methodName](...params);
+            const gasEstimate = await method.estimateGas({
+                from: this.account.address,
+            });
+
+            elizaLogger.info(`Gas estimate for ${methodName}: ${gasEstimate}`);
+
+            const gasPrice = await this.web3.eth.getGasPrice();
+            const txParams = {
+                from: this.account.address,
+                gas: gasEstimate,
+                maxPriorityFeePerGas: gasPrice,
+                maxFeePerGas: gasPrice*2n,
+            };
+
+            await method.send(txParams);
             return true;
         } catch (error) {
             elizaLogger.error(`Error during updateInContract (${methodName}):`, error);
