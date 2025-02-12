@@ -1394,6 +1394,19 @@ export interface ITeeLogService extends Service {
     ): Promise<boolean>;
 }
 
+export interface IOnchainStateService {
+    get(key: string): Promise<{
+        value: string;
+        version: number;
+    }>;
+    put(key: string, value: string, version?: number): Promise<void>;
+}
+
+export interface IOnchainService extends Service {
+    getInstance(): IOnchainService;
+    newNamespace(namespance: string, key: string): IOnchainStateService;
+}
+
 export type SearchImage = {
     url: string;
     description?: string;
@@ -1431,6 +1444,8 @@ export enum ServiceType {
     IRYS = "irys",
     TEE_LOG = "tee_log",
     GOPLUS_SECURITY = "goplus_security",
+    SMART_ACTION = "smart_action",
+    ONCHAIN_STATE = "onchain_state",
 }
 
 export enum LoggingLevel {
