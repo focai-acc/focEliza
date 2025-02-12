@@ -1,0 +1,27 @@
+{
+  "name": "@elizaos/plugin-foc-airdrop",
+  "version": "0.1.9",
+  "main": "dist/index.js",
+    "type": "module",
+    "types": "dist/index.d.ts",
+    "dependencies": {
+        "@elizaos/core": "workspace:*",
+        "@elizaos/plugin-smart-action": "workspace:*",
+        "tsup": "8.3.5",
+        "node-cache": "5.1.2",
+        "@elizaos/plugin-foc-auth": "workspace:*",
+        "@solana/spl-token": "^0.4.12",
+        "@solana/web3.js": "^1.98.0",
+        "vitest": "2.1.8",
+        "bs58": "6.0.0"
+    },
+    "scripts": {
+        "build": "tsup --format esm --dts",
+        "dev": "tsup --format esm --dts --watch",
+        "lint": "eslint --fix  --cache .",
+        "test": "vitest run"
+    },
+    "peerDependencies": {
+        "whatwg-url": "7.1.0"
+    }
+}

@@ -471,6 +471,11 @@ export class TwitterInteractionClient {
                         );
                     }
 
+                    // store twitter to state
+                    state["tweet_id"] = tweet.id;
+                    state["tweet_username"] = tweet.username;
+                    state["tweet_url"] = tweet.permanentUrl.substring(0, tweet.permanentUrl.indexOf("/status"));;
+
                     await this.runtime.processActions(
                         message,
                         responseMessages,
