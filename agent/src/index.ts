@@ -103,9 +103,6 @@ import path from "path";
 import { fileURLToPath } from "url";
 import yargs from "yargs";
 import {dominosPlugin} from "@elizaos/plugin-dominos";
-import { smartActionPlugin } from "@elizaos/plugin-smart-action";
-import { focAuthPlugin } from "@elizaos/plugin-foc-auth";
-import { focAirdropPlugin } from "@elizaos/plugin-foc-airdrop";
 
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename); // get the name of the directory
@@ -856,11 +853,6 @@ export async function createAgent(
                 : null,
             getSecret(character, "QUAI_PRIVATE_KEY")
                 ? quaiPlugin
-                : null,
-            smartActionPlugin,
-            focAuthPlugin,
-            getSecret(character, "AIRDROP_TOKEN_ADDRESS")
-                ? focAirdropPlugin
                 : null,
         ].filter(Boolean),
         providers: [],
