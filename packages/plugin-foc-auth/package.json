@@ -1,0 +1,25 @@
+{
+  "name": "@elizaos/plugin-foc-auth",
+  "version": "0.1.9",
+  "main": "dist/index.js",
+    "type": "module",
+    "types": "dist/index.d.ts",
+    "dependencies": {
+        "@elizaos/core": "workspace:*",
+        "@elizaos/plugin-smart-action": "workspace:*",
+        "@elizaos/plugin-tee": "workspace:*",
+        "tsup": "8.3.5",
+        "node-cache": "5.1.2",
+        "@solana/web3.js": "^1.87.6",
+        "vitest": "2.1.8"
+    },
+    "scripts": {
+        "build": "tsup --format esm --dts",
+        "dev": "tsup --format esm --dts --watch",
+        "lint": "eslint --fix  --cache .",
+        "test": "vitest run"
+    },
+    "peerDependencies": {
+        "whatwg-url": "7.1.0"
+    }
+}

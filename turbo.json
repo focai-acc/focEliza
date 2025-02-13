@@ -49,6 +49,19 @@
                 "@elizaos/plugin-trustdb#build"
             ]
         },
+        "@elizaos/plugin-foc-airdrop#build": {
+            "outputs": ["dist/**"],
+            "dependsOn": [
+                "@elizaos/plugin-foc-auth#build",
+                "@elizaos/plugin-smart-action#build"
+            ]
+        },
+        "@elizaos/plugin-foc-auth#build": {
+            "outputs": ["dist/**"],
+            "dependsOn": [
+                "@elizaos/plugin-smart-action#build"
+            ]
+        },
         "eliza-docs#build": {
             "outputs": ["build/**"]
         },
