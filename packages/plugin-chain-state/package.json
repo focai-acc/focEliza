@@ -1,0 +1,36 @@
+{
+    "name": "@elizaos/plugin-chain-state",
+    "version": "0.1.9",
+    "main": "dist/index.js",
+    "type": "module",
+    "types": "dist/index.d.ts",
+    "dependencies": {
+        "@elizaos/core": "workspace:*",
+        "@elizaos/plugin-tee": "workspace:*",
+        "@prisma/client": "^6.2.1",
+        "ethers": "^6.13.5",
+        "node-cache": "5.1.2",
+        "tsup": "8.3.5",
+        "viem": "2.23.2",
+        "vitest": "2.1.8"
+    },
+    "scripts": {
+        "build": "pnpm run prisma:generate  && pnpm run prisma:push && tsup --format esm --dts",
+        "dev": "tsup --format esm --dts --watch",
+        "lint": "eslint --fix  --cache .",
+        "test": "vitest run",
+        "typechain": "rm -rf src/contract/types && mkdir src/contract/types && typechain --target ethers-v6 --out-dir src/contract/types './src/contract/source/*.json'",
+        "prisma:generate": "node scripts/updatePrismaProvider.js && dotenv -e ../../.env -- npx prisma generate",
+        "prisma:push": "dotenv -e ../../.env -- npx prisma db push",
+        "prisma:migrate": "dotenv -e ../../.env  -- npx prisma migrate dev"
+    },
+    "peerDependencies": {
+        "whatwg-url": "7.1.0"
+    },
+    "devDependencies": {
+        "@typechain/ethers-v6": "^0.5.1",
+        "dotenv-cli": "^8.0.0",
+        "prisma": "^6.2.1",
+        "typechain": "^8.3.2"
+    }
+}

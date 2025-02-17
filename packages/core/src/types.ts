@@ -1343,12 +1343,12 @@ export interface IOnchainStateService {
         value: string;
         version: number;
     }>;
-    put(key: string, value: string, version?: number): Promise<void>;
+    put(key: string, value: string, version?: number): Promise<boolean>;
 }
 
 export interface IOnchainService extends Service {
     getInstance(): IOnchainService;
-    newNamespace(namespance: string, key: string): IOnchainStateService;
+    newNamespace(namespance: string, key: string): Promise<IOnchainStateService>;
 }
 
 export type SearchImage = {
