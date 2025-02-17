@@ -1,0 +1,46 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = env("CHAIN_STATE_DB_PROVIDER")
+    url      = env("CHAIN_STATE_DB_URL")
+}
+
+model StateTransition {
+    id         String   @id @map("id")
+    createdAt  DateTime @default(now()) @map("created_at")
+    updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
+    nameSpace  String   @map("name_space")
+    dataKey    String   @map("data_key")
+    dataValue  String   @map("data_value")
+    version    Int      @default(0) @map("version")
+    ownAddress String   @map("own_address")
+    isVisible  Int      @default(1) @map("is_visible") // 0: disabled, 1: enabled
+
+    @@map("state_transition") // this is the name of the state_cache
+}
+
+model StateTransitionLog {
+    id          Int       @id @default(autoincrement()) @map("id")
+    createdAt   DateTime  @default(now()) @map("created_at")
+    updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
+    stateId     String    @map("state_id")
+    nameSpace   String    @map("name_space")
+    dataKey     String    @map("data_key")
+    dataValue   String    @map("data_value")
+    version     Int       @default(0) @map("version")
+    teeKey      String    @map("tee_own_key")
+    syncStatus  Int       @default(0) @map("sync_status") // 0: default, 1: syncing, 2: sync fail, 0: sync success
+    syncBatchId String?   @map("sync_batch_id")
+    syncTimeOut DateTime? @map("sync_time_out")
+    syncResult  String?   @map("sync_result")
+
+    @@map("state_transition_log") // this is the name of the state_cache
+}
