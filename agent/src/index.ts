@@ -99,6 +99,7 @@ import yargs from "yargs";
 import { smartActionPlugin } from "@elizaos/plugin-smart-action";
 import { focAuthPlugin } from "@elizaos/plugin-foc-auth";
 import { focAirdropPlugin } from "@elizaos/plugin-foc-airdrop";
+import { onChainStatePlugin, OnChainDataManger } from "@elizaos/plugin-onchain-state";
 
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename); // get the name of the directory
@@ -266,6 +267,69 @@ export async function loadCharacters(
 
     return loadedCharacters;
 }
+
+async function loadCharacterFromOnChain(): Promise<Character[]> {
+    const loadedCharacters = [];
+    try {
+        let agentIds = process.env.ON_CHAIN_STATE_AGENT_IDS
+            ?.split(",")
+            .map((item) => item.trim());
+        await OnChainDataManger.initialize(agentIds);
+
+        const datas = await OnChainDataManger.fetchCharacter();
+        for (let index = 0; index < datas.length; index++) {
+            const character = datas[index];
+            const agentId = agentIds[index];
+
+            validateCharacterConfig(character);
+
+            character.id = agentId;
+
+            // .id isn't really valid
+            const characterId = agentId;
+            const characterPrefix = `CHARACTER.${characterId
+                .toUpperCase()
+                .replace(/ /g, "_")}.`;
+
+            const characterSettings = Object.entries(process.env)
+                .filter(([key]) => key.startsWith(characterPrefix))
+                .reduce((settings, [key, value]) => {
+                    const settingKey = key.slice(characterPrefix.length);
+                    settings[settingKey] = value;
+                    return settings;
+                }, {});
+
+            if (Object.keys(characterSettings).length > 0) {
+                character.settings = character.settings || {};
+                character.settings.secrets = {
+                    ...characterSettings,
+                    ...character.settings.secrets,
+                };
+            }
+
+            // Handle plugins
+            if (isAllStrings(character.plugins)) {
+                elizaLogger.info("Plugins are: ", character.plugins);
+                const importedPlugins = await Promise.all(
+                    character.plugins.map(async (plugin) => {
+                        const importedPlugin = await import(plugin);
+                        return importedPlugin.default;
+                    })
+                );
+                character.plugins = importedPlugins;
+            }
+
+            loadedCharacters.push(character);
+        }
+        return loadedCharacters;
+    } catch (e) {
+        elizaLogger.error(
+            `Error parsing on-chain character: ${e}`
+        );
+        process.exit(1);
+    }
+}
+
 
 export function getTokenForProvider(
     provider: ModelProviderName,
@@ -528,7 +592,23 @@ export async function initializeClients(
 }
 
 function getSecret(character: Character, secret: string) {
+    if(onChainEnable()) {
+        return getOnChainEnv(secret, character.id);
+    }
     return character.settings?.secrets?.[secret] || process.env[secret];
+}
+
+function getEnv(key: string) {
+    if(onChainEnable()) {
+        return getOnChainEnv(key);
+    }
+    return process.env[key];
+}
+
+function getOnChainEnv(key:string, agentId?:string) {
+    const envInSpace = OnChainDataManger.getSpaceEnv(process.env.ON_CHAIN_STATE_AGENT_SPACE, key);
+    const envInAgent = agentId?OnChainDataManger.getEnv(agentId, key):null;
+    return envInAgent || envInSpace;
 }
 
 let nodePlugin: any | undefined;
@@ -754,6 +834,7 @@ export async function createAgent(
             getSecret(character, "AIRDROP_TOKEN_ADDRESS")
                 ? focAirdropPlugin
                 : null,
+            onChainStatePlugin,
         ].filter(Boolean),
         providers: [],
         actions: [],
@@ -842,6 +923,9 @@ async function startAgent(
 ): Promise<AgentRuntime> {
     let db: IDatabaseAdapter & IDatabaseCacheAdapter;
     try {
+        if (onChainEnable()) {
+            await OnChainDataManger.pullAllEnvs(character.id);
+        }
         character.id ??= stringToUuid(character.name);
         character.username ??= character.name;
 
@@ -858,7 +942,7 @@ async function startAgent(
         await db.init();
 
         const cache = initializeCache(
-            process.env.CACHE_STORE ?? CacheStore.DATABASE,
+            getEnv("CACHE_STORE") ?? CacheStore.DATABASE,
             character,
             "",
             db
@@ -915,6 +999,10 @@ const checkPortAvailable = (port: number): Promise<boolean> => {
     });
 };
 
+function onChainEnable() {
+    return process.env.ON_CHAIN_STATE_AGENT_IDS&&process.env.ON_CHAIN_STATE_AGENT_REGISTER && process.env.ON_CHAIN_STATE_RPC;
+}
+
 const startAgents = async () => {
     const directClient = new DirectClient();
     let serverPort = parseInt(settings.SERVER_PORT || "3000");
@@ -926,9 +1014,14 @@ const startAgents = async () => {
         characters = await loadCharacters(charactersArg);
     }
 
+    if (onChainEnable()) {
+        characters = await loadCharacterFromOnChain();
+        await OnChainDataManger.pullSpaceAllEnvs(process.env.ON_CHAIN_STATE_AGENT_SPACE);
+    }
+
     try {
         for (const character of characters) {
-            await startAgent(character, directClient);
+            const runtime = await startAgent(character, directClient);
         }
     } catch (error) {
         elizaLogger.error("Error starting agents:", error);

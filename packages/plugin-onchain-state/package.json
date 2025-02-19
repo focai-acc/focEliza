@@ -1,0 +1,20 @@
+{
+    "name": "@elizaos/plugin-onchain-state",
+    "version": "0.0.1",
+    "main": "dist/index.js",
+    "type": "module",
+    "types": "dist/index.d.ts",
+    "dependencies": {
+        "@elizaos/core": "workspace:*",
+        "@elizaos/plugin-tee": "workspace:*",
+        "tsup": "8.3.5",
+        "ethers": "^6.13.5",
+        "pinata-web3": "^0.5.4"
+    },
+    "scripts": {
+        "build": "tsup --format esm --dts",
+        "dev": "tsup --format esm --dts --watch",
+        "lint": "eslint --fix  --cache .",
+        "test": "vitest run"
+    }
+}

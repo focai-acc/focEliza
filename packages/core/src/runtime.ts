@@ -34,6 +34,7 @@ import {
     IRAGKnowledgeManager,
     IMemoryManager,
     IVerifiableInferenceAdapter,
+    IOnchainStateService,
     KnowledgeItem,
     RAGKnowledgeItem,
     Media,
@@ -636,7 +637,18 @@ export class AgentRuntime implements IAgentRuntime {
         }
     }
 
+    onChainEnable() {
+        return process.env.ON_CHAIN_STATE_AGENT_IDS&&process.env.ON_CHAIN_STATE_AGENT_REGISTER&&process.env.ON_CHAIN_STATE_RPC;
+    }
+
     getSetting(key: string) {
+        if(this.onChainEnable()) {
+            const service = this.services.get(ServiceType.ONCHAIN_STATE);
+            if(service) {
+                return (service as IOnchainStateService).getEnv(key);
+            }
+        }
+
         // check if the key is in the character.settings.secrets object
         if (this.character.settings?.secrets?.[key]) {
             return this.character.settings.secrets[key];

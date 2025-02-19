@@ -61,3 +61,8 @@ agent/content
 eliza.manifest
 eliza.manifest.sgx
 eliza.sig
+
+artifacts/
+packages/plugin-onchain-state/src/contract/typechain-types/
+packages/plugin-onchain-state/src/contract/ignition/deployments/
+packages/plugin-onchain-state/src/contract/cache/

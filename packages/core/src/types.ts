@@ -1338,7 +1338,8 @@ export interface ITeeLogService extends Service {
     log(agentId: string, roomId: string, userId: string, type: string, content: string): Promise<boolean>;
 }
 
-export interface IOnchainStateService {
+export interface IOnchainStateService extends Service {
+    getEnv(key: string);
     get(key: string): Promise<{
         value: string;
         version: number;
