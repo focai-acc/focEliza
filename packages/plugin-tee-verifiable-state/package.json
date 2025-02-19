@@ -1,36 +1,38 @@
 {
-  "name": "@yueliao11/plugin-tee-verifiable-state",
-  "version": "0.1.0",
-  "description": "A TEE-based verifiable state service plugin",
-  "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch src",
-    "lint": "eslint --fix --ext .ts,.tsx src",
-    "test": "tsx examples/test.ts"
-  },
-  "keywords": [
-    "tee",
-    "verifiable",
-    "state",
-    "plugin"
-  ],
-  "author": "yueliao11",
-  "license": "MIT",
-  "dependencies": {
-    "@elizaos/core": "0.25.6-alpha.1",
-    "@elizaos/plugin-tee": "0.25.6-alpha.1",
-    "@elizaos/plugin-sgx": "0.25.6-alpha.1",
-    "elliptic": "^6.5.4"
-  },
-  "devDependencies": {
-    "@types/elliptic": "^6.4.18",
-    "@types/node": "^20.0.0",
-    "dotenv": "^16.4.7",
-    "tsup": "^7.0.0",
-    "tsx": "^4.19.2",
-    "typescript": "^5.0.0"
-  }
+    "name": "@elizaos/plugin-tee-verifiable-state",
+    "version": "0.1.0",
+    "description": "A TEE-based verifiable state service plugin",
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+        "build": "tsup",
+        "dev": "tsup --watch src",
+        "lint": "eslint --fix --ext .ts,.tsx src",
+        "test": "tsx examples/test.ts"
+    },
+    "keywords": [
+        "tee",
+        "verifiable",
+        "state",
+        "plugin"
+    ],
+    "author": "yueliao11",
+    "license": "MIT",
+    "dependencies": {
+        "@elizaos/core": "workspace:*",
+        "@elizaos/plugin-sgx": "workspace:*",
+        "@elizaos/plugin-tee": "workspace:*",
+        "elliptic": "^6.6.1"
+    },
+    "devDependencies": {
+        "@types/elliptic": "^6.4.18",
+        "@types/express": "^5.0.0",
+        "@types/express-serve-static-core": "^5.0.6",
+        "@types/node": "^20.0.0",
+        "dotenv": "^16.4.7",
+        "tsup": "8.3.5",
+        "tsx": "^4.19.2",
+        "typescript": "^5.0.0"
+    }
 }
