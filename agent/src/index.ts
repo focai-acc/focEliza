@@ -11,6 +11,7 @@ import { TelegramClientInterface } from "@elizaos/client-telegram";
 import { TwitterClientInterface } from "@elizaos/client-twitter";
 // import { ReclaimAdapter } from "@elizaos/plugin-reclaim";
 import { PrimusAdapter } from "@elizaos/plugin-primus";
+import { aimaDefensePlugin } from "@elizaos/plugin-aima-defense";
 import {
     AgentRuntime,
     CacheManager,
@@ -754,6 +755,7 @@ export async function createAgent(
             getSecret(character, "AIRDROP_TOKEN_ADDRESS")
                 ? focAirdropPlugin
                 : null,
+            aimaDefensePlugin,
         ].filter(Boolean),
         providers: [],
         actions: [],
