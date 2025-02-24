@@ -1,56 +1,74 @@
-import { elizaLogger, type Client, type IAgentRuntime, type IOnchainStateService, ServiceType} from "@elizaos/core";
-import {EventEmitter} from "events";
+import {
+    elizaLogger,
+    type IAgentRuntime,
+    type IOnchainStateService,
+    ServiceType,
+    type Client,
+} from "@elizaos/core";
+import { EventEmitter } from "events";
+import { SqliteStateData } from "../adapters/sqliteState.ts";
 
-export class OnChainStateClient extends EventEmitter {
-    private intervalId: NodeJS.Timeout | null = null;
-    private readonly DEFAULT_INTERVAL = 60 * 1000;
-    private inActive = false;
+export class OnChainStateClient {
     private runtime!: IAgentRuntime;
+    private stateService!: IOnchainStateService;
+    private intervalId: NodeJS.Timeout | null = null;
+    private readonly DEFAULT_INTERVAL = 5 * 1000;
+    private inActive = false;
 
-    constructor(runtime: IAgentRuntime) {
-        super();
-        this.runtime = runtime;
+    constructor() {}
+
+    async init(runtime: IAgentRuntime): Promise<void> {
+        try {
+            this.runtime = runtime;
+            this.stateService = runtime.getService<IOnchainStateService>(
+                ServiceType.ONCHAIN_STATE
+            );
+
+            // start
+            this.startPeriodicTask();
+
+            elizaLogger.success(
+                `✅ on-chain state client successfully started for character ${runtime.character.name}`
+            );
+        } catch (error) {
+            elizaLogger.error(
+                "Error initializing on-chain state client:",
+                error
+            );
+            throw error;
+        }
     }
 
-    async init(): Promise<void> {
-        // Start the periodic task
-        this.startPeriodicTask();
-        elizaLogger.info("OnChainStateClient initialized and started periodic task");
-    }
-
-    async startPeriodicTask(): Promise<void> {
-        elizaLogger.info(
-            `OnChainStateClient: Starting periodic task`
-        );
-
-        // Initial call immediately
-        this.syncDatabaseData();
+    private async startPeriodicTask() {
+        // sync data
+        await this.stateService.syncStateData();
 
         // Set up periodic calls
         this.intervalId = setInterval(() => {
-            this.syncDatabaseData();
+            if (!this.inActive) {
+                this.processPendingStates();
+            }
         }, this.DEFAULT_INTERVAL);
     }
 
-    private async syncDatabaseData(): Promise<void> {
-        if (!this.runtime) {
-            elizaLogger.error("OnChainStateClient: Runtime not initialized");
-            return;
-        }
-        if (this.inActive) {
-            elizaLogger.warn(
-                "OnChainStateClient: Periodic task already running, skipping"
-            );
-            return;
-        }
+    private async processPendingStates() {
         this.inActive = true;
         try {
+            const data = await this.stateService.getOldestPendingData();
+            elizaLogger.info(
+                `Processing pending state for key: ${data.key} version:${data.version}`
+            );
+
+            await this.stateService.writeStateDataOnChain(
+                data.key,
+                data.value,
+                data.version
+            );
 
             elizaLogger.info(
-                "OnChainStateClient: Successfully sync database data"
+                `Successfully processed state for key: ${data.key} version:${data.version}`
             );
         } catch (error) {
-            elizaLogger.error("info: Error sync database data", error);
         } finally {
             this.inActive = false;
         }
@@ -65,25 +83,18 @@ export class OnChainStateClient extends EventEmitter {
     }
 }
 
-
 export const OnChainStateClientInterface: Client = {
     async start(runtime: IAgentRuntime) {
         try {
-            const client = new OnChainStateClient(runtime);
-            // await client.init();
-
-            // test set conchain state
-            const service = runtime.getService<IOnchainStateService>(
-                ServiceType.ONCHAIN_STATE
-            );
-            // service.put("StateKey1","StateData1",1);
+            const client = new OnChainStateClient();
+            // await client.init(runtime);
 
             elizaLogger.success(
                 `✅ on-chain state client successfully started for character ${runtime.character.name}`
             );
             return client;
         } catch (error) {
-            elizaLogger.error("Failed to start EchoChambers client:", error);
+            elizaLogger.error("Failed to start on-chain state client:", error);
             throw error;
         }
     },
@@ -91,10 +102,12 @@ export const OnChainStateClientInterface: Client = {
     async stop(runtime: IAgentRuntime) {
         try {
             await runtime.clients.onchainState.stop();
-            elizaLogger.success("✅ on-chain state client stopped successfully");
+            elizaLogger.success(
+                "✅ on-chain state client stopped successfully"
+            );
         } catch (error) {
             elizaLogger.error("Error stopping on-chain state client:", error);
             throw error;
         }
     },
-}
+};

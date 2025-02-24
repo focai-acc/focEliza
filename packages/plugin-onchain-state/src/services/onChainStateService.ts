@@ -3,13 +3,15 @@ import {
     type IOnchainStateService,
     Service,
     ServiceType,
-    elizaLogger
+    elizaLogger,
 } from "@elizaos/core";
 import { DeriveKeyProvider, TEEMode } from "@elizaos/plugin-tee";
 import { DeriveKeyResponse } from "@phala/dstack-sdk";
-import { Contract,BaseContract, ethers, type Wallet } from 'ethers';
+import { Contract, BaseContract, ethers, type Wallet } from "ethers";
 import { OnChainDataManger } from "./onChainDataManger.ts";
 import { PrivateKeyAccount, keccak256 } from "viem";
+import { SqliteStateData } from "../adapters/sqliteState.ts";
+import { StateData } from "../types.ts";
 
 export class OnChainStateService
     extends Service
@@ -22,6 +24,7 @@ export class OnChainStateService
     private agentContractWrite: Contract;
     private account: DeriveKeyResponse;
     private wallet: Wallet;
+    private stateManager: SqliteStateData;
 
     getInstance(): OnChainStateService {
         return this;
@@ -38,18 +41,33 @@ export class OnChainStateService
         this.runtime = runtime;
         this.dataManager = OnChainDataManger;
         this.agentContract = this.dataManager.getAgentContract(runtime.agentId);
+        this.agentContract.on("StateDataChanged", (args) => {
+            console.log("listener StateDataChanged args", args);
+            // parse data
+            // this.stateManager.updateStateStatus();
+        });
+
+        // Initialize state DAO
+        this.stateManager = new SqliteStateData(
+            this.runtime.databaseAdapter.db
+        );
+        await this.stateManager.initialize(runtime.agentId);
 
         this.initialized = true;
     }
 
-    async initialWallet(): Promise<{hexPrivateKey:string,keypair:PrivateKeyAccount}>  {
+    async initialWallet(): Promise<{
+        hexPrivateKey: string;
+        keypair: PrivateKeyAccount;
+    }> {
         const teeMode = this.runtime.getSetting("TEE_MODE");
         if (teeMode === TEEMode.OFF) {
             return;
         }
         const deriveKeyProvider = new DeriveKeyProvider(teeMode);
         try {
-            const walletSecretSalt = this.runtime.getSetting("WALLET_SECRET_SALT");
+            const walletSecretSalt =
+                this.runtime.getSetting("WALLET_SECRET_SALT");
             if (!walletSecretSalt) {
                 throw new Error(
                     "WALLET_SECRET_SALT required when TEE_MODE is enabled"
@@ -70,17 +88,25 @@ export class OnChainStateService
 
             return {
                 hexPrivateKey: hex,
-                keypair: response2.keypair
+                keypair: response2.keypair,
             };
         } catch (error) {
             elizaLogger.error("Error in init wallet provider:", error.message);
         }
     }
 
+    async syncStateData(): Promise<void> {}
+
     getEnv(key: string) {
-        if(this.initialized) {
-            const envInSpace = this.dataManager.getSpaceEnv(process.env.ON_CHAIN_STATE_AGENT_SPACE, key);
-            const envInAgent = this.dataManager.getEnv(this.runtime.agentId, key);
+        if (this.initialized) {
+            const envInSpace = this.dataManager.getSpaceEnv(
+                process.env.ON_CHAIN_STATE_AGENT_SPACE,
+                key
+            );
+            const envInAgent = this.dataManager.getEnv(
+                this.runtime.agentId,
+                key
+            );
             return envInAgent || envInSpace;
         }
         return process.env[key];
@@ -90,67 +116,90 @@ export class OnChainStateService
         value: string;
         version: number;
     }> {
-        const [value, version] = await this.agentContract.getLatestStateData(key);
-        return {value,version};
+        const [value, version] =
+            await this.agentContract.getLatestStateData(key);
+        return { value, version };
+    }
+
+    async putSync(key: string, value: string, version?: number) {
+        this.storeStateData(key, value, version);
     }
 
     async put(key: string, value: string, version?: number): Promise<void> {
-        if(!this.wallet) {
-            const result = await this.initialWallet();
-            elizaLogger.info("on-chain state wallet address:",result.keypair.address);
-            this.wallet = new ethers.Wallet(result.hexPrivateKey,this.dataManager.rpcProvider);
-            this.agentContractWrite = this.agentContract.connect(this.wallet) as Contract;
-        }
-        await this.agentContractWrite.storeStateData(key,ethers.toUtf8Bytes(value),version || 1);
+        return await this.writeStateDataOnChain(key, value, version);
     }
 
     async fetchAgentInfo(): Promise<{}> {
         return await this.agentContract.info();
     }
 
-    async fetchEnvValue(key: string): Promise<string|"" > {
+    async fetchEnvValue(key: string): Promise<string | ""> {
         return await this.agentContract.getEnv(key);
     }
 
-    async storeStateData(key:string,value:string) {
+    async writeStateDataOnChain(
+        key: string,
+        value: string,
+        version?: number
+    ): Promise<any> {
         try {
-
+            // Initialize wallet if not already done
+            if (!this.wallet) {
+                const result = await this.initialWallet();
+                elizaLogger.info(
+                    "on-chain state wallet address:",
+                    result.keypair.address
+                );
+                this.wallet = new ethers.Wallet(
+                    result.hexPrivateKey,
+                    this.dataManager.rpcProvider
+                );
+                this.agentContractWrite = this.agentContract.connect(
+                    this.wallet
+                ) as Contract;
+            }
+            const tx = await this.agentContractWrite.storeStateData(
+                key,
+                ethers.toUtf8Bytes(value),
+                version
+            );
+            await tx.wait(1); // Wait for transaction
         } catch (error) {
-            elizaLogger.error("Error in wallet provider:", error.message);
+            elizaLogger.error("Error in storing state data:", error.message);
+
+            // Update status to failed in database if error occurs
+            await this.stateManager.updateStateStatus(
+                key,
+                "failed",
+                version || 1
+            );
+
+            throw error;
         }
-        const tx = await this.agentContract.storeStateData(key,value);
     }
 
-    async fetchDatabaseData(agentId: string, from: number, to: number) {
-        // const events = await this.agentContract.queryFilter('DBDataRecorded', from, to);
-        // for (let i = 0; i < events.length; i++) {
-        //     const event = events[i];
-        //     const block = await event.getBlock();
-        //     const txHash = event.transactionHash;
-        //     const creator = event?.args[0];
-        //     const version = event?.args[1];
-        //     const table = event.args[2];
-        //     const id = event.args[3];
-        //     const data = event.args[4];
+    storeStateData(key: string, value: string, version: number) {
+        const data = this.stateManager.getStateData(key);
+        if (
+            data != null &&
+            (data.version > version ||
+                (data.value === value && data.version == version))
+        ) {
+            return;
+        }
 
-        //     if(table === "memory") {
-        //         const rowData = JSON.parse(data);
-        //         const memory: Memory = {
-        //             id,
-        //             userId: rowData["userId"],
-        //             agentId,
-        //             createdAt: rowData["createdAt"],
-        //             content: JSON.stringify(rowData["content"]),
-        //             embedding: JSON.stringify(rowData["embedding"]),
-        //             roomId: rowData["roomId"],
-        //             unique: rowData["unique"],
-        //             similarity: rowData["similarity"]
-        //         };
-        //         this.runtime.databaseAdapter.createMemory(memory, rowData["type"]);
-        //     }
-        // }
+        const stateData: Partial<StateData> = {
+            key,
+            value,
+            status: "pending",
+            version: version,
+        };
+        return this.stateManager.addStateData(stateData);
     }
 
+    async getOldestPendingData(): Promise<StateData | null> {
+        return this.stateManager.getOldestPendingData();
+    }
 }
 
 export default OnChainStateService;

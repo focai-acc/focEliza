@@ -1345,6 +1345,15 @@ export interface IOnchainStateService extends Service {
         version: number;
     }>;
     put(key: string, value: string, version?: number): Promise<void>;
+    putSync(key: string, value: string, version?: number);
+    syncStateData(): Promise<void>;
+    getOldestPendingData(): Promise<any>;
+    storeStateData(key: string, value: string, version: number);
+    writeStateDataOnChain(
+        key: string,
+        value: string,
+        version?: number
+    ): Promise<any>;
 }
 
 export interface IOnchainService extends Service {
@@ -1497,7 +1506,6 @@ export interface IVerifiableInferenceAdapter {
      */
     verifyProof(result: VerifiableInferenceResult): Promise<boolean>;
 }
-
 
 export enum TokenizerType {
     Auto = "auto",
