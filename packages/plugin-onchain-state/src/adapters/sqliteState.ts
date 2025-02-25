@@ -52,11 +52,12 @@ export class SqliteStateData {
     addStateData(data: Partial<StateData>): boolean {
         const stmt = this.db.prepare(
             `INSERT INTO ${this.DATA_TABLE_NAME}
-            (key, value, version, status, agent_id)
-            VALUES (?, ?, ?, ?, ?)
+            (key, value, version, hash, status, agent_id)
+            VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(key, version, agent_id)
             DO UPDATE SET
             value = excluded.value,
+            hash = excluded.hash,
             status = excluded.status,
             updated_at = CURRENT_TIMESTAMP`
         );
@@ -65,6 +66,7 @@ export class SqliteStateData {
                 data.key,
                 data.value,
                 data.version,
+                data.hash,
                 data.status,
                 this.agentId
             );
@@ -75,33 +77,33 @@ export class SqliteStateData {
         }
     }
 
-    async updateStateStatus(
-        key: string,
-        status: StateData["status"],
-        version: number,
-        hash?: string
-    ): Promise<boolean> {
+    updateStateStatus(data: Partial<StateData>): boolean {
         const stmt = this.db.prepare(
             `UPDATE ${this.DATA_TABLE_NAME}
-            SET status = ?,
-            hash = ?,
+            SET status = ?, hash = ?,
             updated_at = CURRENT_TIMESTAMP
             WHERE key = ? AND agent_id = ? AND version = ?`
         );
         try {
-            const params = [status, hash || null, key, version, this.agentId];
+            const params = [
+                data.status,
+                data.hash || null,
+                data.key,
+                this.agentId,
+                data.version,
+            ];
             const result = stmt.run(...params);
             return result.changes > 0;
         } catch (error) {
-            elizaLogger.error("Error updating state status in database", error);
+            elizaLogger.error("Error updating state data in database", error);
             return false;
         }
     }
 
-    getOldestPendingData(): StateData | null {
+    getOldestUnConfirmedData(): StateData | null {
         const stmt = this.db.prepare<{}, StateData>(
             `SELECT * FROM ${this.DATA_TABLE_NAME}
-            WHERE status = 'pending' AND agent_id = ?
+            WHERE status != 'confirmed' AND agent_id = ?
             ORDER BY created_at ASC LIMIT 1`
         );
         try {
@@ -110,27 +112,10 @@ export class SqliteStateData {
             return row;
         } catch (error) {
             elizaLogger.error(
-                "Error getting oldest pending state from database",
+                "Error getting oldest unconfirmed state from database",
                 error
             );
             return null;
-        }
-    }
-
-    getAllPendingData(): StateData[] {
-        const stmt = this.db.prepare<{}, StateData>(
-            `SELECT * FROM ${this.DATA_TABLE_NAME}
-            WHERE status = 'pending' AND agent_id = ?
-            ORDER BY created_at ASC`
-        );
-        try {
-            return stmt.all(this.agentId);
-        } catch (error) {
-            elizaLogger.error(
-                "Error getting all pending state data from database",
-                error
-            );
-            return [];
         }
     }
 }

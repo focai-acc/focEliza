@@ -1335,7 +1335,13 @@ export interface IAwsS3Service extends Service {
 
 export interface ITeeLogService extends Service {
     getInstance(): ITeeLogService;
-    log(agentId: string, roomId: string, userId: string, type: string, content: string): Promise<boolean>;
+    log(
+        agentId: string,
+        roomId: string,
+        userId: string,
+        type: string,
+        content: string
+    ): Promise<boolean>;
 }
 
 export interface IOnchainStateService extends Service {
@@ -1344,14 +1350,15 @@ export interface IOnchainStateService extends Service {
         value: string;
         version: number;
     }>;
-    put(key: string, value: string, version?: number): Promise<void>;
-    putSync(key: string, value: string, version?: number);
+    putOnchain(key: string, value: string, version?: number): Promise<boolean>;
+    putLocal(key: string, value: string, version?: number): Promise<boolean>;
     syncStateData(): Promise<void>;
-    getOldestPendingData(): Promise<any>;
+    getOldestUnConfirmedData(): Promise<any>;
     storeStateData(key: string, value: string, version: number);
     writeStateDataOnChain(
         key: string,
         value: string,
+        direct?: boolean,
         version?: number
     ): Promise<any>;
 }

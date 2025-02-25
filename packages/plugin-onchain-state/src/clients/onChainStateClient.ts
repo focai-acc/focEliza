@@ -5,8 +5,6 @@ import {
     ServiceType,
     type Client,
 } from "@elizaos/core";
-import { EventEmitter } from "events";
-import { SqliteStateData } from "../adapters/sqliteState.ts";
 
 export class OnChainStateClient {
     private runtime!: IAgentRuntime;
@@ -26,13 +24,9 @@ export class OnChainStateClient {
 
             // start
             this.startPeriodicTask();
-
-            elizaLogger.success(
-                `✅ on-chain state client successfully started for character ${runtime.character.name}`
-            );
         } catch (error) {
             elizaLogger.error(
-                "Error initializing on-chain state client:",
+                "On-chain State Client initializing on-chain state client error:",
                 error
             );
             throw error;
@@ -54,20 +48,21 @@ export class OnChainStateClient {
     private async processPendingStates() {
         this.inActive = true;
         try {
-            const data = await this.stateService.getOldestPendingData();
-            elizaLogger.info(
-                `Processing pending state for key: ${data.key} version:${data.version}`
-            );
-
-            await this.stateService.writeStateDataOnChain(
-                data.key,
-                data.value,
-                data.version
-            );
-
-            elizaLogger.info(
-                `Successfully processed state for key: ${data.key} version:${data.version}`
-            );
+            const data = await this.stateService.getOldestUnConfirmedData();
+            if (data) {
+                elizaLogger.info(
+                    "On-chain State Client process off-chain state data:",
+                    data.key,
+                    data.value,
+                    data.version
+                );
+                await this.stateService.writeStateDataOnChain(
+                    data.key,
+                    data.value,
+                    false,
+                    data.version
+                );
+            }
         } catch (error) {
         } finally {
             this.inActive = false;
@@ -87,14 +82,14 @@ export const OnChainStateClientInterface: Client = {
     async start(runtime: IAgentRuntime) {
         try {
             const client = new OnChainStateClient();
-            // await client.init(runtime);
+            await client.init(runtime);
 
             elizaLogger.success(
-                `✅ on-chain state client successfully started for character ${runtime.character.name}`
+                `On-chain State Client successfully started for character ${runtime.character.name}`
             );
             return client;
         } catch (error) {
-            elizaLogger.error("Failed to start on-chain state client:", error);
+            elizaLogger.error("Failed to start On-chain State Client:", error);
             throw error;
         }
     },
@@ -102,11 +97,9 @@ export const OnChainStateClientInterface: Client = {
     async stop(runtime: IAgentRuntime) {
         try {
             await runtime.clients.onchainState.stop();
-            elizaLogger.success(
-                "✅ on-chain state client stopped successfully"
-            );
+            elizaLogger.success("On-chain State Client stopped successfully");
         } catch (error) {
-            elizaLogger.error("Error stopping on-chain state client:", error);
+            elizaLogger.error("Error stopping On-chain State Client:", error);
             throw error;
         }
     },
