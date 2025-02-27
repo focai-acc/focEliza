@@ -1335,15 +1335,32 @@ export interface IAwsS3Service extends Service {
 
 export interface ITeeLogService extends Service {
     getInstance(): ITeeLogService;
-    log(agentId: string, roomId: string, userId: string, type: string, content: string): Promise<boolean>;
+    log(
+        agentId: string,
+        roomId: string,
+        userId: string,
+        type: string,
+        content: string
+    ): Promise<boolean>;
 }
 
-export interface IOnchainStateService {
+export interface IOnchainStateService extends Service {
+    getEnv(key: string);
     get(key: string): Promise<{
         value: string;
         version: number;
     }>;
-    put(key: string, value: string, version?: number): Promise<void>;
+    putOnchain(key: string, value: string, version?: number): Promise<boolean>;
+    putLocal(key: string, value: string, version?: number): Promise<boolean>;
+    syncStateData(): Promise<void>;
+    getOldestUnConfirmedData(): Promise<any>;
+    storeStateData(key: string, value: string, version: number);
+    writeStateDataOnChain(
+        key: string,
+        value: string,
+        direct?: boolean,
+        version?: number
+    ): Promise<any>;
 }
 
 export interface IOnchainService extends Service {
@@ -1496,7 +1513,6 @@ export interface IVerifiableInferenceAdapter {
      */
     verifyProof(result: VerifiableInferenceResult): Promise<boolean>;
 }
-
 
 export enum TokenizerType {
     Auto = "auto",
