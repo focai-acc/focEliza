@@ -6,6 +6,16 @@ interface IElizaAgentRegistry {
     error InvalidSpaceName();
     error InvalidRange();
     error ExcessiveArrayLength();
+    error InvalidAddress();
+
+    /// @notice Structs
+    struct AgentParams {
+        address operator;
+        string space;
+        string name;
+        string description;
+        string characterURI;
+    }
 
     /// @notice Events
     event AgentTemplateChanged(address indexed operator, address indexed from, address indexed to);
@@ -14,15 +24,19 @@ interface IElizaAgentRegistry {
     event RegistryUnpaused(address indexed operator);
     event SpaceOwnershipTransferred(string indexed space, address indexed from, address indexed to);
 
+    // Events for operator management
+    event OperatorGranted(string indexed space, address indexed operator);
+    event OperatorRevoked(string indexed space, address indexed operator);
+
     function updateTemplate(address _agentTemplate) external;
 
     function registerAgent(
-        address creator,
-        string calldata _space,
-        string calldata _name,
-        string calldata _description,
-        string calldata _characterURI
+        AgentParams calldata params
     ) external returns (address);
+
+    function predictAgentAddress(bytes32 id) external view returns(address);
+
+    function getAgentId(string calldata space, uint256 index) external pure returns(bytes32);
 
     function getCreatorLatestAgent(
         address creator,

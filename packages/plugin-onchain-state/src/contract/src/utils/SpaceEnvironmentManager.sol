@@ -54,8 +54,18 @@ abstract contract SpaceEnvironmentManager is AccessControl, Pausable, Reentrancy
         _;
     }
 
+    modifier onlySpaceOwnerOrOperator(string calldata space) {
+        if (!(_isSpaceOwner(space, _msgSender()) || _isSpaceOperator(space, _msgSender()))) {
+            revert UnauthorizedAccess();
+        }
+        _;
+    }
+
     // This function must be implemented by the contract that inherits this one
     function _isSpaceOwner(string calldata space, address account) internal virtual returns (bool);
+
+    // This function must be implemented by the contract that inherits this one
+    function _isSpaceOperator(string calldata space, address account) internal virtual returns (bool);
 
     function getSpaceEnv(string calldata space, string calldata key) external view returns (string memory) {
         return spaceEnvs[space][key];
@@ -73,7 +83,7 @@ abstract contract SpaceEnvironmentManager is AccessControl, Pausable, Reentrancy
         string calldata space,
         string calldata key,
         string calldata value
-    ) external onlyRole(OPERATOR_ROLE) onlySpaceOwner(space) {
+    ) external onlySpaceOwnerOrOperator(space) {
         _setSpaceEnv(space, key, value);
     }
 
@@ -81,14 +91,14 @@ abstract contract SpaceEnvironmentManager is AccessControl, Pausable, Reentrancy
         string calldata space,
         string[] calldata keys,
         string[] calldata values
-    ) external onlyRole(OPERATOR_ROLE) onlySpaceOwner(space) whenNotPaused nonReentrant {
+    ) external onlySpaceOwnerOrOperator(space) whenNotPaused nonReentrant {
         _setSpaceEnvs(space, keys, values);
     }
 
     function removeSpaceEnv(
         string calldata space,
         string calldata key
-    ) external onlyRole(OPERATOR_ROLE) onlySpaceOwner(space) {
+    ) external onlySpaceOwnerOrOperator(space) {
         _removeSpaceEnv(space, key);
     }
 

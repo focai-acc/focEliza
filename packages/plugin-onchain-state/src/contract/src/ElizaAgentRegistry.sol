@@ -11,8 +11,10 @@ import "hardhat/console.sol";
 
 contract ElizaAgentRegistry is IElizaAgentRegistry, SpaceEnvironmentManager {
     address public agentTemplate;
-    mapping(string => address) private spaceOwners;
 
+    mapping(string => address) private spaceOwners;
+    // Space operators mapping: space => operator => isOperator
+    mapping(string => mapping(address => bool)) private spaceOperators;
     mapping(uint256 => string) public spacesIndexer;
     uint256 public spaceIndex;
 
@@ -20,11 +22,8 @@ contract ElizaAgentRegistry is IElizaAgentRegistry, SpaceEnvironmentManager {
     uint256 public agentIndex;
     mapping(uint256 => address) public agentsIndexer;
 
-    constructor(
-        address _agentTemplate
-    ) {
+    constructor(address _agentTemplate) {
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _grantRole(OPERATOR_ROLE, _msgSender());
 
         agentTemplate = _agentTemplate;
     }
@@ -36,51 +35,91 @@ contract ElizaAgentRegistry is IElizaAgentRegistry, SpaceEnvironmentManager {
         _;
     }
 
-    function updateTemplate(address _agentTemplate) external onlyRole(OPERATOR_ROLE) {
+    function grantOperator(
+        string calldata _space,
+        address _operator
+    ) external validSpaceName(_space) {
+        // Only space owner can grant operator permissions
+        if (_msgSender() != spaceOwners[_space]) {
+            revert UnauthorizedAccess();
+        }
+        if (_operator == address(0)) {
+            revert InvalidAddress();
+        }
+        spaceOperators[_space][_operator] = true;
+        emit OperatorGranted(_space, _operator);
+    }
+
+    function revokeOperator(
+        string calldata _space,
+        address _operator
+    ) external validSpaceName(_space) {
+        // Only space owner can revoke operator permissions
+        if (_msgSender() != spaceOwners[_space]) {
+            revert UnauthorizedAccess();
+        }
+        if (_operator == address(0)) {
+            revert InvalidAddress();
+        }
+        spaceOperators[_space][_operator] = false;
+        emit OperatorRevoked(_space, _operator);
+    }
+
+    function isOperator(
+        string calldata _space,
+        address _operator
+    ) external view returns (bool) {
+        return spaceOperators[_space][_operator];
+    }
+
+    function updateTemplate(
+        address _agentTemplate
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_agentTemplate != agentTemplate) {
-            emit AgentTemplateChanged(_msgSender(), agentTemplate, _agentTemplate);
+            emit AgentTemplateChanged(
+                _msgSender(),
+                agentTemplate,
+                _agentTemplate
+            );
             agentTemplate = _agentTemplate;
         }
     }
 
     function registerAgent(
-        address _creator,
-        string calldata _space,
-        string calldata _name,
-        string calldata _description,
-        string calldata _characterURI
-    ) external whenNotPaused nonReentrant validSpaceName(_space) returns (address) {
-        address creator = _creator;
-        string calldata space = _space;
-        string calldata name = _name;
-        string calldata description = _description;
-        string calldata characterURI = _characterURI;
-
+        AgentParams calldata params
+    )
+        external
+        whenNotPaused
+        nonReentrant
+        validSpaceName(params.space)
+        returns (address)
+    {
+        address creator = _msgSender();
         // Check if space exists and verify ownership
-        address existingOwner = spaceOwners[space];
+        address existingOwner = spaceOwners[params.space];
         if (existingOwner != address(0) && existingOwner != creator) {
             revert UnauthorizedAccess();
         }
 
-        bytes32 id = keccak256(abi.encodePacked(space, agentIndex));
+        bytes32 id = getAgentId(params.space, agentIndex);
         AgentInfo memory info = AgentInfo({
-            space: space,
+            space: params.space,
             agentId: id,
-            name: name,
-            description: description,
-            characterURI: characterURI
+            name: params.name,
+            description: params.description,
+            characterURI: params.characterURI
         });
 
         address agent = Clones.cloneDeterministic(agentTemplate, id);
-        IElizaAgent(agent).initialize(creator, info);
+        IElizaAgent(agent).initialize(creator, params.operator, info);
 
         if (existingOwner == address(0)) {
-            spaceOwners[space] = creator;
-            spacesIndexer[spaceIndex] = space;
+            spaceOwners[params.space] = creator;
+            spacesIndexer[spaceIndex] = params.space;
             spaceIndex++;
         }
 
-        emit AgentRegistered(space, id, name, agent, agentIndex);
+        emit AgentRegistered(params.space, id, params.name, agent, agentIndex);
 
         agents[id] = agent;
         agentsIndexer[agentIndex] = agent;
@@ -89,12 +128,23 @@ contract ElizaAgentRegistry is IElizaAgentRegistry, SpaceEnvironmentManager {
         return agent;
     }
 
+    function predictAgentAddress(bytes32 id) public view returns (address) {
+        return Clones.predictDeterministicAddress(agentTemplate, id);
+    }
+
+    function getAgentId(
+        string calldata space,
+        uint256 index
+    ) public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(space, index));
+    }
+
     function getCreatorLatestAgent(
         address creator,
         uint256 startIndex,
         uint256 endIndex
     ) external view returns (address) {
-        for (uint256 i = endIndex; i >= startIndex;) {
+        for (uint256 i = endIndex; i >= startIndex; ) {
             address _creator = IElizaAgent(agentsIndexer[i]).getCreator();
             if (creator == _creator) {
                 return agentsIndexer[i];
@@ -118,24 +168,28 @@ contract ElizaAgentRegistry is IElizaAgentRegistry, SpaceEnvironmentManager {
 
         // First pass: count spaces owned by creator
         uint256 count = 0;
-        for (uint256 i = startIndex; i <= endIndex;) {
+        for (uint256 i = startIndex; i <= endIndex; ) {
             string memory space = spacesIndexer[i];
             if (bytes(space).length > 0 && spaceOwners[space] == creator) {
                 count++;
             }
-            unchecked { i++; }
+            unchecked {
+                i++;
+            }
         }
 
         // Second pass: collect spaces
         string[] memory creatorSpaces = new string[](count);
         uint256 arrayIndex = 0;
-        for (uint256 i = startIndex; i <= endIndex;) {
+        for (uint256 i = startIndex; i <= endIndex; ) {
             string memory space = spacesIndexer[i];
             if (bytes(space).length > 0 && spaceOwners[space] == creator) {
                 creatorSpaces[arrayIndex] = space;
                 arrayIndex++;
             }
-            unchecked { i++; }
+            unchecked {
+                i++;
+            }
         }
 
         return creatorSpaces;
@@ -151,7 +205,7 @@ contract ElizaAgentRegistry is IElizaAgentRegistry, SpaceEnvironmentManager {
 
         // First pass: count agents in space
         uint256 count = 0;
-        for (uint256 i = startIndex; i < endIndex;) {
+        for (uint256 i = startIndex; i < endIndex; ) {
             address agent = agentsIndexer[i];
             if (agent != address(0)) {
                 AgentInfo memory info = IElizaAgent(agent).getInfo();
@@ -159,13 +213,15 @@ contract ElizaAgentRegistry is IElizaAgentRegistry, SpaceEnvironmentManager {
                     count++;
                 }
             }
-            unchecked { i++; }
+            unchecked {
+                i++;
+            }
         }
 
         // Second pass: collect agents
         address[] memory spaceAgents = new address[](count);
         uint256 arrayIndex = 0;
-        for (uint256 i = startIndex; i < endIndex;) {
+        for (uint256 i = startIndex; i < endIndex; ) {
             address agent = agentsIndexer[i];
             if (agent != address(0)) {
                 AgentInfo memory info = IElizaAgent(agent).getInfo();
@@ -174,7 +230,9 @@ contract ElizaAgentRegistry is IElizaAgentRegistry, SpaceEnvironmentManager {
                     arrayIndex++;
                 }
             }
-            unchecked { i++; }
+            unchecked {
+                i++;
+            }
         }
 
         return spaceAgents;
@@ -183,15 +241,23 @@ contract ElizaAgentRegistry is IElizaAgentRegistry, SpaceEnvironmentManager {
     function transferSpaceOwnership(
         string calldata _space,
         address _newOwner
-    ) external validSpaceName(_space) {
+    ) external validSpaceName(_space) onlySpaceOwner(_space) {
         if (_msgSender() != spaceOwners[_space]) {
             revert UnauthorizedAccess();
         }
+        emit SpaceOwnershipTransferred(_space, spaceOwners[_space], _newOwner);
         spaceOwners[_space] = _newOwner;
     }
 
-    function _isSpaceOwner(string calldata space, address account) internal view override returns (bool) {
+    function _isSpaceOwner(
+        string calldata space,
+        address account
+    ) internal view override returns (bool) {
         return spaceOwners[space] == account;
+    }
+
+    function _isSpaceOperator(string calldata space, address account) internal view override returns (bool){
+        return spaceOperators[space][account];
     }
 
     function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -208,7 +274,9 @@ contract ElizaAgentRegistry is IElizaAgentRegistry, SpaceEnvironmentManager {
         return agents[agentId];
     }
 
-    function getSpaceOwner(string calldata _space) external view returns (address) {
+    function getSpaceOwner(
+        string calldata _space
+    ) external view returns (address) {
         return spaceOwners[_space];
     }
 }

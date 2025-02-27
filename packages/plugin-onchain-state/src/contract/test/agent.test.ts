@@ -7,9 +7,8 @@ import {
     ElizaAgentRegistry__factory,
     ElizaAgent,
     ElizaAgentRegistry,
+    IElizaAgentRegistry,
 } from "../typechain-types";
-import { EventLog } from "ethers/lib.commonjs/contract/wrappers";
-import { getContractAt } from "@nomicfoundation/hardhat-ethers/internal/helpers";
 
 describe("Eliza Agent System", function () {
     const OPERATOR_ROLE = hre.ethers.keccak256(
@@ -65,27 +64,421 @@ describe("Eliza Agent System", function () {
         });
 
         describe("Access Control", function () {
-            it("Should allow owner to update template", async function () {
+            it("Should allow admin to update template", async function () {
                 const { owner, elizaAgentRegistry } =
                     await loadFixture(deployFixture);
                 const newTemplate = ethers.Wallet.createRandom().address;
-                await elizaAgentRegistry.grantRole(
-                    OPERATOR_ROLE,
-                    owner.address
-                );
                 await elizaAgentRegistry.updateTemplate(newTemplate);
                 expect(await elizaAgentRegistry.agentTemplate()).to.equal(
                     newTemplate
                 );
             });
 
-            it("Should not allow non-owner to update template", async function () {
+            it("Should not allow non-admin to update template", async function () {
                 const { user, elizaAgentRegistry } =
                     await loadFixture(deployFixture);
                 const newTemplate = ethers.Wallet.createRandom().address;
                 await expect(
                     elizaAgentRegistry.connect(user).updateTemplate(newTemplate)
-                ).to.be.reverted;
+                ).to.be.revertedWithCustomError(
+                    elizaAgentRegistry,
+                    "AccessControlUnauthorizedAccount"
+                );
+            });
+        });
+
+        describe("Space Operator Management", function () {
+            it("Should allow space owner to grant operator permission", async function () {
+                const { user, operator, elizaAgentRegistry } =
+                    await loadFixture(deployFixture);
+
+                // Register space first
+                await elizaAgentRegistry.connect(user).registerAgent({
+                    operator: user.address,
+                    space: "test-space",
+                    name: "Test Agent",
+                    description: "Test Description",
+                    characterURI: "https://test.uri",
+                });
+
+                // Grant operator permission
+                await expect(
+                    elizaAgentRegistry
+                        .connect(user)
+                        .grantOperator("test-space", operator.address)
+                ).to.not.be.reverted;
+
+                // Verify operator status
+                expect(
+                    await elizaAgentRegistry.isOperator(
+                        "test-space",
+                        operator.address
+                    )
+                ).to.equal(true);
+            });
+
+            it("Should allow space owner to revoke operator permission", async function () {
+                const { user, operator, elizaAgentRegistry } =
+                    await loadFixture(deployFixture);
+
+                // Register space and grant operator
+                await elizaAgentRegistry.connect(user).registerAgent({
+                    operator: user.address,
+                    space: "test-space",
+                    name: "Test Agent",
+                    description: "Test Description",
+                    characterURI: "https://test.uri",
+                });
+                await elizaAgentRegistry
+                    .connect(user)
+                    .grantOperator("test-space", operator.address);
+
+                // Revoke operator permission
+                await expect(
+                    elizaAgentRegistry
+                        .connect(user)
+                        .revokeOperator("test-space", operator.address)
+                ).to.not.be.reverted;
+
+                // Verify operator status is revoked
+                expect(
+                    await elizaAgentRegistry.isOperator(
+                        "test-space",
+                        operator.address
+                    )
+                ).to.equal(false);
+            });
+
+            it("Should not allow non-owner to grant operator permission", async function () {
+                const { user, operator, elizaAgentRegistry } =
+                    await loadFixture(deployFixture);
+
+                // Register space
+                await elizaAgentRegistry.connect(user).registerAgent({
+                    operator: user.address,
+                    space: "test-space",
+                    name: "Test Agent",
+                    description: "Test Description",
+                    characterURI: "https://test.uri",
+                });
+
+                // Try to grant operator permission as non-owner
+                await expect(
+                    elizaAgentRegistry
+                        .connect(operator)
+                        .grantOperator("test-space", operator.address)
+                ).to.be.revertedWithCustomError(
+                    elizaAgentRegistry,
+                    "UnauthorizedAccess"
+                );
+            });
+
+            it("Should emit events when granting and revoking operators", async function () {
+                const { user, operator, elizaAgentRegistry } =
+                    await loadFixture(deployFixture);
+
+                // Register space
+                await elizaAgentRegistry.connect(user).registerAgent({
+                    operator: user.address,
+                    space: "test-space",
+                    name: "Test Agent",
+                    description: "Test Description",
+                    characterURI: "https://test.uri",
+                });
+
+                // Check grant event
+                await expect(
+                    elizaAgentRegistry
+                        .connect(user)
+                        .grantOperator("test-space", operator.address)
+                )
+                    .to.emit(elizaAgentRegistry, "OperatorGranted")
+                    .withArgs("test-space", operator.address);
+
+                // Check revoke event
+                await expect(
+                    elizaAgentRegistry
+                        .connect(user)
+                        .revokeOperator("test-space", operator.address)
+                )
+                    .to.emit(elizaAgentRegistry, "OperatorRevoked")
+                    .withArgs("test-space", operator.address);
+            });
+        });
+
+        describe("Agent Registration", function () {
+            // Define a helper function to create AgentParams
+            function createAgentParams(
+                operator: string,
+                space: string,
+                name: string = "Test Agent",
+                description: string = "Test Description",
+                characterURI: string = "https://test.uri"
+            ): IElizaAgentRegistry.AgentParamsStruct {
+                return {
+                    operator,
+                    space,
+                    name,
+                    description,
+                    characterURI,
+                };
+            }
+
+            it("Should allow user to register agent in new space", async function () {
+                const { user, operator, elizaAgentRegistry } =
+                    await loadFixture(deployFixture);
+
+                const params = createAgentParams(
+                    operator.address,
+                    "test-space"
+                );
+
+                const agentId = await elizaAgentRegistry.getAgentId(
+                    params.space,
+                    0
+                );
+                await expect(
+                    elizaAgentRegistry.connect(user).registerAgent(params)
+                )
+                    .to.emit(elizaAgentRegistry, "AgentRegistered")
+                    .withArgs(
+                        params.space,
+                        agentId,
+                        params.name,
+                        await elizaAgentRegistry.predictAgentAddress(agentId),
+                        0
+                    );
+
+                // Verify space owner
+                expect(
+                    await elizaAgentRegistry.getSpaceOwner(params.space)
+                ).to.equal(user.address);
+            });
+
+            it("Should allow space owner to register multiple agents", async function () {
+                const { user, operator, elizaAgentRegistry } =
+                    await loadFixture(deployFixture);
+
+                // First agent registration
+                const params1 = createAgentParams(
+                    operator.address,
+                    "test-space",
+                    "Agent 1",
+                    "Test Description 1",
+                    "https://test1.uri"
+                );
+                await elizaAgentRegistry.connect(user).registerAgent(params1);
+
+                // Second agent registration in same space
+                const params2 = createAgentParams(
+                    operator.address, // Different operator for second agent
+                    "test-space",
+                    "Agent 2",
+                    "Test Description 2",
+                    "https://test2.uri"
+                );
+                await expect(
+                    elizaAgentRegistry.connect(user).registerAgent(params2)
+                ).to.not.be.reverted;
+
+                // Verify both agents exist
+                expect(await elizaAgentRegistry.agentIndex()).to.equal(2);
+            });
+
+            it("Should prevent non-owner from registering agent in existing space", async function () {
+                const { user, operator, elizaAgentRegistry } =
+                    await loadFixture(deployFixture);
+
+                // First user claims the space
+                const params1 = createAgentParams(
+                    operator.address,
+                    "test-space"
+                );
+                await elizaAgentRegistry.connect(user).registerAgent(params1);
+
+                // Second user tries to use the same space
+                const params2 = createAgentParams(
+                    operator.address,
+                    "test-space",
+                    "Another Agent",
+                    "Another Description",
+                    "https://another.uri"
+                );
+                await expect(
+                    elizaAgentRegistry.connect(operator).registerAgent(params2)
+                ).to.be.revertedWithCustomError(
+                    elizaAgentRegistry,
+                    "UnauthorizedAccess"
+                );
+            });
+
+            it("Should allow different users to create agents in different spaces", async function () {
+                const { user, operator, elizaAgentRegistry } =
+                    await loadFixture(deployFixture);
+
+                // First user creates agent in their space
+                const userParams = createAgentParams(
+                    operator.address,
+                    "user-space",
+                    "User Agent",
+                    "User Description",
+                    "https://user.uri"
+                );
+                await elizaAgentRegistry
+                    .connect(user)
+                    .registerAgent(userParams);
+
+                // Second user creates agent in different space
+                const operatorParams = createAgentParams(
+                    user.address, // Different operator for second space
+                    "operator-space",
+                    "Operator Agent",
+                    "Operator Description",
+                    "https://operator.uri"
+                );
+                await expect(
+                    elizaAgentRegistry
+                        .connect(operator)
+                        .registerAgent(operatorParams)
+                ).to.not.be.reverted;
+
+                // Verify both spaces have correct owners
+                expect(
+                    await elizaAgentRegistry.getSpaceOwner(userParams.space)
+                ).to.equal(user.address);
+                expect(
+                    await elizaAgentRegistry.getSpaceOwner(operatorParams.space)
+                ).to.equal(operator.address);
+            });
+
+            it("Should properly initialize agent with correct creator and operator", async function () {
+                const { user, operator, elizaAgentRegistry, ElizaAgent } =
+                    await loadFixture(deployFixture);
+
+                const params = createAgentParams(
+                    operator.address,
+                    "test-space"
+                );
+
+                const tx = await elizaAgentRegistry
+                    .connect(user)
+                    .registerAgent(params);
+                await tx.wait(1);
+
+                let index = await elizaAgentRegistry.agentIndex();
+                const agentAddress =
+                    await elizaAgentRegistry.getCreatorLatestAgent(
+                        await user.getAddress(),
+                        0,
+                        Number(index) - 1
+                    );
+                const agent = ElizaAgent.attach(agentAddress) as ElizaAgent;
+
+                // // Verify creator and operator
+                expect(await agent.getCreator()).to.equal(user.address); // Creator is msg.sender
+                expect(await agent.isOperator(params.operator)).to.equal(true); // Operator from params
+            });
+
+            it("Should fail when registering with invalid space name", async function () {
+                const { user, operator, elizaAgentRegistry } =
+                    await loadFixture(deployFixture);
+
+                const params = createAgentParams(
+                    operator.address,
+                    "" // Empty space name
+                );
+
+                await expect(
+                    elizaAgentRegistry.connect(user).registerAgent(params)
+                ).to.be.revertedWithCustomError(
+                    elizaAgentRegistry,
+                    "InvalidSpaceName"
+                );
+            });
+
+            it("Should set correct creator regardless of operator", async function () {
+                const { user, operator, elizaAgentRegistry, ElizaAgent } =
+                    await loadFixture(deployFixture);
+
+                const params = createAgentParams(
+                    user.address, // Setting operator as the same as the caller
+                    "test-space"
+                );
+
+                const tx = await elizaAgentRegistry
+                    .connect(user)
+                    .registerAgent(params);
+                await tx.wait(1);
+
+                let index = await elizaAgentRegistry.agentIndex();
+                const agentAddress =
+                    await elizaAgentRegistry.getCreatorLatestAgent(
+                        await user.getAddress(),
+                        0,
+                        Number(index) - 1
+                    );
+                const agent = ElizaAgent.attach(agentAddress) as ElizaAgent;
+
+                // Creator should still be msg.sender even when operator is the same address
+                expect(await agent.getCreator()).to.equal(user.address);
+                expect(await agent.isOperator(params.operator)).to.equal(true); // Operator from params
+            });
+        });
+
+        describe("Space Ownership Transfer", function () {
+            it("Should only allow space owner to transfer ownership", async function () {
+                const { user, operator, elizaAgentRegistry } =
+                    await loadFixture(deployFixture);
+
+                // Register space
+                await elizaAgentRegistry.connect(user).registerAgent({
+                    operator: user.address,
+                    space: "test-space",
+                    name: "Test Agent",
+                    description: "Test Description",
+                    characterURI: "https://test.uri",
+                });
+
+                // Transfer ownership
+                await expect(
+                    elizaAgentRegistry
+                        .connect(user)
+                        .transferSpaceOwnership("test-space", operator.address)
+                )
+                    .to.emit(elizaAgentRegistry, "SpaceOwnershipTransferred")
+                    .withArgs("test-space", user.address, operator.address);
+
+                // Verify new owner
+                expect(
+                    await elizaAgentRegistry.getSpaceOwner("test-space")
+                ).to.equal(operator.address);
+            });
+
+            it("Should not allow operator to transfer space ownership", async function () {
+                const { user, operator, elizaAgentRegistry } =
+                    await loadFixture(deployFixture);
+
+                // Register space and grant operator
+                await elizaAgentRegistry.connect(user).registerAgent({
+                    operator: user.address,
+                    space: "test-space",
+                    name: "Test Agent",
+                    description: "Test Description",
+                    characterURI: "https://test.uri",
+                });
+                await elizaAgentRegistry
+                    .connect(user)
+                    .grantOperator("test-space", operator.address);
+
+                // Attempt transfer ownership as operator
+                await expect(
+                    elizaAgentRegistry
+                        .connect(operator)
+                        .transferSpaceOwnership("test-space", operator.address)
+                ).to.be.revertedWithCustomError(
+                    elizaAgentRegistry,
+                    "UnauthorizedAccess"
+                );
             });
         });
 
@@ -94,13 +487,13 @@ describe("Eliza Agent System", function () {
                 const { user, elizaAgentRegistry } =
                     await loadFixture(deployFixture);
                 await expect(
-                    elizaAgentRegistry.registerAgent(
-                        user.address,
-                        "test-space",
-                        "Test Agent",
-                        "Test Description",
-                        "https://test.uri"
-                    )
+                    elizaAgentRegistry.registerAgent({
+                        operator: user.address,
+                        space: "test-space",
+                        name: "Test Agent",
+                        description: "Test Description",
+                        characterURI: "https://test.uri",
+                    })
                 ).to.not.be.reverted;
             });
 
@@ -109,23 +502,24 @@ describe("Eliza Agent System", function () {
                     await loadFixture(deployFixture);
 
                 // First agent registration
-                await elizaAgentRegistry.registerAgent(
-                    user.address,
-                    "test-space",
-                    "Agent 1",
-                    "Test Description 1",
-                    "https://test1.uri"
-                );
+
+                await elizaAgentRegistry.registerAgent({
+                    operator: user.address,
+                    space: "test-space",
+                    name: "Agent 1",
+                    description: "Test Description 1",
+                    characterURI: "https://test1.uri",
+                });
 
                 // Second agent registration in same space should succeed
                 await expect(
-                    elizaAgentRegistry.registerAgent(
-                        user.address,
-                        "test-space",
-                        "Agent 2",
-                        "Test Description 2",
-                        "https://test2.uri"
-                    )
+                    elizaAgentRegistry.registerAgent({
+                        operator: user.address,
+                        space: "test-space",
+                        name: "Agent 2",
+                        description: "Test Description 2",
+                        characterURI: "https://test2.uri",
+                    })
                 ).to.not.be.reverted;
             });
 
@@ -134,23 +528,23 @@ describe("Eliza Agent System", function () {
                     await loadFixture(deployFixture);
 
                 // First user claims the space
-                await elizaAgentRegistry.registerAgent(
-                    user.address,
-                    "test-space",
-                    "Test Agent",
-                    "Test Description",
-                    "https://test.uri"
-                );
+                await elizaAgentRegistry.connect(user).registerAgent({
+                    operator: user.address,
+                    space: "test-space",
+                    name: "Test Agent",
+                    description: "Test Description",
+                    characterURI: "https://test.uri",
+                });
 
                 // Second user tries to use the same space
                 await expect(
-                    elizaAgentRegistry.registerAgent(
-                        operator.address,
-                        "test-space",
-                        "Another Agent",
-                        "Another Description",
-                        "https://another.uri"
-                    )
+                    elizaAgentRegistry.connect(operator).registerAgent({
+                        operator: operator.address,
+                        space: "test-space",
+                        name: "Another Agent",
+                        description: "Another Description",
+                        characterURI: "https://another.uri",
+                    })
                 ).to.be.revertedWithCustomError(
                     elizaAgentRegistry,
                     "UnauthorizedAccess"
@@ -163,24 +557,24 @@ describe("Eliza Agent System", function () {
 
                 // First user creates agent in their space
                 await expect(
-                    elizaAgentRegistry.registerAgent(
-                        user.address,
-                        "user-space",
-                        "User Agent",
-                        "User Description",
-                        "https://user.uri"
-                    )
+                    elizaAgentRegistry.registerAgent({
+                        operator: user.address,
+                        space: "user-space",
+                        name: "User Agent",
+                        description: "User Description",
+                        characterURI: "https://user.uri",
+                    })
                 ).to.not.be.reverted;
 
                 // Second user creates agent in different space
                 await expect(
-                    elizaAgentRegistry.registerAgent(
-                        operator.address,
-                        "operator-space",
-                        "Operator Agent",
-                        "Operator Description",
-                        "https://operator.uri"
-                    )
+                    elizaAgentRegistry.registerAgent({
+                        operator: operator.address,
+                        space: "operator-space",
+                        name: "Operator Agent",
+                        description: "Operator Description",
+                        characterURI: "https://operator.uri",
+                    })
                 ).to.not.be.reverted;
             });
         });
@@ -200,13 +594,13 @@ describe("Eliza Agent System", function () {
                 ).to.deep.equal([]);
 
                 // Register first agent in space1
-                await elizaAgentRegistry.registerAgent(
-                    user.address,
-                    "space1",
-                    "Agent1",
-                    "Description1",
-                    "ipfs://1"
-                );
+                await elizaAgentRegistry.connect(user).registerAgent({
+                    operator: user.address,
+                    space: "space1",
+                    name: "Agent1",
+                    description: "Description1",
+                    characterURI: "ipfs://1",
+                });
 
                 // Check user has one space
                 expect(
@@ -218,13 +612,13 @@ describe("Eliza Agent System", function () {
                 ).to.deep.equal(["space1"]);
 
                 // Register second agent in space2
-                await elizaAgentRegistry.registerAgent(
-                    user.address,
-                    "space2",
-                    "Agent2",
-                    "Description2",
-                    "ipfs://2"
-                );
+                await elizaAgentRegistry.connect(user).registerAgent({
+                    operator: user.address,
+                    space: "space2",
+                    name: "Agent2",
+                    description: "Description2",
+                    characterURI: "ipfs://2",
+                });
 
                 // Check user has two spaces
                 expect(
@@ -236,13 +630,13 @@ describe("Eliza Agent System", function () {
                 ).to.deep.equal(["space1", "space2"]);
 
                 // Register another agent in existing space2 (shouldn't add new space)
-                await elizaAgentRegistry.registerAgent(
-                    user.address,
-                    "space2",
-                    "Agent3",
-                    "Description3",
-                    "ipfs://3"
-                );
+                await elizaAgentRegistry.connect(user).registerAgent({
+                    operator: user.address,
+                    space: "space2",
+                    name: "Agent3",
+                    description: "Description3",
+                    characterURI: "ipfs://3",
+                });
 
                 // Should still have same two spaces
                 expect(
@@ -254,13 +648,13 @@ describe("Eliza Agent System", function () {
                 ).to.deep.equal(["space1", "space2"]);
 
                 // Register agent in space3 with operator
-                await elizaAgentRegistry.registerAgent(
-                    operator.address,
-                    "space3",
-                    "Agent4",
-                    "Description4",
-                    "ipfs://4"
-                );
+                await elizaAgentRegistry.connect(operator).registerAgent({
+                    operator: operator.address,
+                    space: "space3",
+                    name: "Agent4",
+                    description: "Description4",
+                    characterURI: "ipfs://4",
+                });
 
                 // Check spaces for both users
                 expect(
@@ -302,13 +696,15 @@ describe("Eliza Agent System", function () {
                 ).to.deep.equal([]);
 
                 // Register first agent in space1
-                const tx1 = await elizaAgentRegistry.registerAgent(
-                    user.address,
-                    "space1",
-                    "Agent1",
-                    "Description1",
-                    "ipfs://1"
-                );
+                const tx1 = await elizaAgentRegistry
+                    .connect(user)
+                    .registerAgent({
+                        operator: user.address,
+                        space: "space1",
+                        name: "Agent1",
+                        description: "Description1",
+                        characterURI: "ipfs://1",
+                    });
                 await tx1.wait(1);
 
                 let index = await elizaAgentRegistry.agentIndex();
@@ -327,13 +723,15 @@ describe("Eliza Agent System", function () {
                 expect(space1Agents1).to.deep.equal([agent1]);
 
                 // Register second agent in space1
-                const tx2 = await elizaAgentRegistry.registerAgent(
-                    user.address,
-                    "space1",
-                    "Agent2",
-                    "Description2",
-                    "ipfs://2"
-                );
+                const tx2 = await elizaAgentRegistry
+                    .connect(user)
+                    .registerAgent({
+                        operator: user.address,
+                        space: "space1",
+                        name: "Agent2",
+                        description: "Description2",
+                        characterURI: "ipfs://2",
+                    });
                 await tx2.wait(1);
                 index = await elizaAgentRegistry.agentIndex();
                 const agent2 = await elizaAgentRegistry.getCreatorLatestAgent(
@@ -351,13 +749,15 @@ describe("Eliza Agent System", function () {
                 expect(space1Agents2).to.deep.equal([agent1, agent2]);
 
                 // Register agent in space2
-                const tx3 = await elizaAgentRegistry.registerAgent(
-                    operator.address,
-                    "space2",
-                    "Agent3",
-                    "Description3",
-                    "ipfs://3"
-                );
+                const tx3 = await elizaAgentRegistry
+                    .connect(operator)
+                    .registerAgent({
+                        operator: operator.address,
+                        space: "space2",
+                        name: "Agent3",
+                        description: "Description3",
+                        characterURI: "ipfs://3",
+                    });
                 await tx3.wait(1);
                 index = await elizaAgentRegistry.agentIndex();
                 const agent3 = await elizaAgentRegistry.getCreatorLatestAgent(
@@ -417,13 +817,13 @@ describe("Eliza Agent System", function () {
                 );
 
                 // Register an agent to become space owner
-                await elizaAgentRegistry.registerAgent(
-                    owner.address,
-                    TEST_SPACE,
-                    "Test Agent",
-                    "Test Description",
-                    "https://test.uri"
-                );
+                await elizaAgentRegistry.registerAgent({
+                    operator: owner.address,
+                    space: TEST_SPACE,
+                    name: "Test Agent",
+                    description: "Test Description",
+                    characterURI: "https://test.uri",
+                });
 
                 return { owner, user, elizaAgentRegistry };
             }
@@ -499,13 +899,13 @@ describe("Eliza Agent System", function () {
                 const { owner, elizaAgentRegistry } = await setupSpaceOwner();
 
                 // Create another space
-                await elizaAgentRegistry.registerAgent(
-                    owner.address,
-                    "another-space",
-                    "Another Agent",
-                    "Another Description",
-                    "https://another.uri"
-                );
+                await elizaAgentRegistry.registerAgent({
+                    operator: owner.address,
+                    space: "another-space",
+                    name: "Another Agent",
+                    description: "Another Description",
+                    characterURI: "https://another.uri",
+                });
 
                 // Set same key with different values in different spaces
                 await elizaAgentRegistry.setSpaceEnv(
@@ -624,13 +1024,13 @@ describe("Eliza Agent System", function () {
                 await loadFixture(deployFixture);
 
             // Register a new agent to test with
-            const tx = await elizaAgentRegistry.registerAgent(
-                user.address,
-                "testSpace",
-                "TestAgent",
-                "Test Description",
-                "ipfs://test"
-            );
+            const tx = await elizaAgentRegistry.connect(user).registerAgent({
+                operator: user.address,
+                space: "testSpace",
+                name: "TestAgent",
+                description: "Test Description",
+                characterURI: "ipfs://test",
+            });
             await tx.wait(1);
             const index = await elizaAgentRegistry.agentIndex();
             const deployedAgentAddress =

@@ -43,6 +43,10 @@ abstract contract EnvironmentManager is AccessControl, Pausable, ReentrancyGuard
         _;
     }
 
+    function isOperator(address operator) external view returns (bool) {
+        return hasRole(OPERATOR_ROLE, operator);
+    }
+
     function getEnv(string calldata _key) external view returns (string memory) {
         return envs[_key];
     }

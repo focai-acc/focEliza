@@ -21,20 +21,24 @@ contract ElizaAgent is IElizaAgent, EnvironmentManager {
 
     function initialize(
         address _creator,
+        address _operator,
         AgentInfo calldata _info
     ) external {
         require(creator == address(0), "Already initialized");
         creator = _creator;
         _grantRole(DEFAULT_ADMIN_ROLE, _creator);
         _grantRole(OPERATOR_ROLE, _creator);
+        _grantRole(OPERATOR_ROLE, _operator);
         info = _info;
     }
 
-    function getInfo() external view returns(AgentInfo memory) {
+    function getInfo() external view returns (AgentInfo memory) {
         return info;
     }
 
-    function setCharacterURI(string calldata _uri) external onlyRole(OPERATOR_ROLE) {
+    function setCharacterURI(
+        string calldata _uri
+    ) external onlyRole(OPERATOR_ROLE) {
         emit CharacterURIChanged(_msgSender(), info.characterURI, _uri);
         info.characterURI = _uri;
     }
@@ -49,12 +53,21 @@ contract ElizaAgent is IElizaAgent, EnvironmentManager {
             revert InvalidInput();
         }
 
-        for(uint256 i = 0; i < ids.length; i++) {
-            emit DBDataRecorded(_msgSender(), version, table, ids[i], contents[i]);
+        for (uint256 i = 0; i < ids.length; i++) {
+            emit DBDataRecorded(
+                _msgSender(),
+                version,
+                table,
+                ids[i],
+                contents[i]
+            );
         }
     }
 
-    function compareBytes(bytes memory a, bytes memory b) public pure returns (bool) {
+    function compareBytes(
+        bytes memory a,
+        bytes memory b
+    ) public pure returns (bool) {
         uint minLength = a.length < b.length ? a.length : b.length;
         for (uint i = 0; i < minLength; i++) {
             if (a[i] < b[i]) return true;
@@ -62,7 +75,6 @@ contract ElizaAgent is IElizaAgent, EnvironmentManager {
         }
         return a.length < b.length;
     }
-
 
     function storeStateData(
         string calldata key,

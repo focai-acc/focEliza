@@ -20,6 +20,7 @@ interface IElizaAgent {
 
     function initialize(
         address owner,
+        address operator,
         AgentInfo calldata _info
     ) external;
 
