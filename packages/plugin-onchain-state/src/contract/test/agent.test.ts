@@ -94,14 +94,13 @@ describe("Eliza Agent System", function () {
                 const { user, elizaAgentRegistry } =
                     await loadFixture(deployFixture);
                 await expect(
-                    elizaAgentRegistry
-                        .connect(user)
-                        .registerAgent(
-                            "test-space",
-                            "Test Agent",
-                            "Test Description",
-                            "https://test.uri"
-                        )
+                    elizaAgentRegistry.registerAgent(
+                        user.address,
+                        "test-space",
+                        "Test Agent",
+                        "Test Description",
+                        "https://test.uri"
+                    )
                 ).to.not.be.reverted;
             });
 
@@ -110,25 +109,23 @@ describe("Eliza Agent System", function () {
                     await loadFixture(deployFixture);
 
                 // First agent registration
-                await elizaAgentRegistry
-                    .connect(user)
-                    .registerAgent(
-                        "test-space",
-                        "Agent 1",
-                        "Test Description 1",
-                        "https://test1.uri"
-                    );
+                await elizaAgentRegistry.registerAgent(
+                    user.address,
+                    "test-space",
+                    "Agent 1",
+                    "Test Description 1",
+                    "https://test1.uri"
+                );
 
                 // Second agent registration in same space should succeed
                 await expect(
-                    elizaAgentRegistry
-                        .connect(user)
-                        .registerAgent(
-                            "test-space",
-                            "Agent 2",
-                            "Test Description 2",
-                            "https://test2.uri"
-                        )
+                    elizaAgentRegistry.registerAgent(
+                        user.address,
+                        "test-space",
+                        "Agent 2",
+                        "Test Description 2",
+                        "https://test2.uri"
+                    )
                 ).to.not.be.reverted;
             });
 
@@ -137,25 +134,23 @@ describe("Eliza Agent System", function () {
                     await loadFixture(deployFixture);
 
                 // First user claims the space
-                await elizaAgentRegistry
-                    .connect(user)
-                    .registerAgent(
-                        "test-space",
-                        "Test Agent",
-                        "Test Description",
-                        "https://test.uri"
-                    );
+                await elizaAgentRegistry.registerAgent(
+                    user.address,
+                    "test-space",
+                    "Test Agent",
+                    "Test Description",
+                    "https://test.uri"
+                );
 
                 // Second user tries to use the same space
                 await expect(
-                    elizaAgentRegistry
-                        .connect(operator)
-                        .registerAgent(
-                            "test-space",
-                            "Another Agent",
-                            "Another Description",
-                            "https://another.uri"
-                        )
+                    elizaAgentRegistry.registerAgent(
+                        operator.address,
+                        "test-space",
+                        "Another Agent",
+                        "Another Description",
+                        "https://another.uri"
+                    )
                 ).to.be.revertedWithCustomError(
                     elizaAgentRegistry,
                     "UnauthorizedAccess"
@@ -168,26 +163,24 @@ describe("Eliza Agent System", function () {
 
                 // First user creates agent in their space
                 await expect(
-                    elizaAgentRegistry
-                        .connect(user)
-                        .registerAgent(
-                            "user-space",
-                            "User Agent",
-                            "User Description",
-                            "https://user.uri"
-                        )
+                    elizaAgentRegistry.registerAgent(
+                        user.address,
+                        "user-space",
+                        "User Agent",
+                        "User Description",
+                        "https://user.uri"
+                    )
                 ).to.not.be.reverted;
 
                 // Second user creates agent in different space
                 await expect(
-                    elizaAgentRegistry
-                        .connect(operator)
-                        .registerAgent(
-                            "operator-space",
-                            "Operator Agent",
-                            "Operator Description",
-                            "https://operator.uri"
-                        )
+                    elizaAgentRegistry.registerAgent(
+                        operator.address,
+                        "operator-space",
+                        "Operator Agent",
+                        "Operator Description",
+                        "https://operator.uri"
+                    )
                 ).to.not.be.reverted;
             });
         });
@@ -207,14 +200,13 @@ describe("Eliza Agent System", function () {
                 ).to.deep.equal([]);
 
                 // Register first agent in space1
-                await elizaAgentRegistry
-                    .connect(user)
-                    .registerAgent(
-                        "space1",
-                        "Agent1",
-                        "Description1",
-                        "ipfs://1"
-                    );
+                await elizaAgentRegistry.registerAgent(
+                    user.address,
+                    "space1",
+                    "Agent1",
+                    "Description1",
+                    "ipfs://1"
+                );
 
                 // Check user has one space
                 expect(
@@ -226,14 +218,13 @@ describe("Eliza Agent System", function () {
                 ).to.deep.equal(["space1"]);
 
                 // Register second agent in space2
-                await elizaAgentRegistry
-                    .connect(user)
-                    .registerAgent(
-                        "space2",
-                        "Agent2",
-                        "Description2",
-                        "ipfs://2"
-                    );
+                await elizaAgentRegistry.registerAgent(
+                    user.address,
+                    "space2",
+                    "Agent2",
+                    "Description2",
+                    "ipfs://2"
+                );
 
                 // Check user has two spaces
                 expect(
@@ -245,14 +236,13 @@ describe("Eliza Agent System", function () {
                 ).to.deep.equal(["space1", "space2"]);
 
                 // Register another agent in existing space2 (shouldn't add new space)
-                await elizaAgentRegistry
-                    .connect(user)
-                    .registerAgent(
-                        "space2",
-                        "Agent3",
-                        "Description3",
-                        "ipfs://3"
-                    );
+                await elizaAgentRegistry.registerAgent(
+                    user.address,
+                    "space2",
+                    "Agent3",
+                    "Description3",
+                    "ipfs://3"
+                );
 
                 // Should still have same two spaces
                 expect(
@@ -264,14 +254,13 @@ describe("Eliza Agent System", function () {
                 ).to.deep.equal(["space1", "space2"]);
 
                 // Register agent in space3 with operator
-                await elizaAgentRegistry
-                    .connect(operator)
-                    .registerAgent(
-                        "space3",
-                        "Agent4",
-                        "Description4",
-                        "ipfs://4"
-                    );
+                await elizaAgentRegistry.registerAgent(
+                    operator.address,
+                    "space3",
+                    "Agent4",
+                    "Description4",
+                    "ipfs://4"
+                );
 
                 // Check spaces for both users
                 expect(
@@ -313,14 +302,13 @@ describe("Eliza Agent System", function () {
                 ).to.deep.equal([]);
 
                 // Register first agent in space1
-                const tx1 = await elizaAgentRegistry
-                    .connect(user)
-                    .registerAgent(
-                        "space1",
-                        "Agent1",
-                        "Description1",
-                        "ipfs://1"
-                    );
+                const tx1 = await elizaAgentRegistry.registerAgent(
+                    user.address,
+                    "space1",
+                    "Agent1",
+                    "Description1",
+                    "ipfs://1"
+                );
                 await tx1.wait(1);
 
                 let index = await elizaAgentRegistry.agentIndex();
@@ -339,14 +327,13 @@ describe("Eliza Agent System", function () {
                 expect(space1Agents1).to.deep.equal([agent1]);
 
                 // Register second agent in space1
-                const tx2 = await elizaAgentRegistry
-                    .connect(user)
-                    .registerAgent(
-                        "space1",
-                        "Agent2",
-                        "Description2",
-                        "ipfs://2"
-                    );
+                const tx2 = await elizaAgentRegistry.registerAgent(
+                    user.address,
+                    "space1",
+                    "Agent2",
+                    "Description2",
+                    "ipfs://2"
+                );
                 await tx2.wait(1);
                 index = await elizaAgentRegistry.agentIndex();
                 const agent2 = await elizaAgentRegistry.getCreatorLatestAgent(
@@ -364,14 +351,13 @@ describe("Eliza Agent System", function () {
                 expect(space1Agents2).to.deep.equal([agent1, agent2]);
 
                 // Register agent in space2
-                const tx3 = await elizaAgentRegistry
-                    .connect(operator)
-                    .registerAgent(
-                        "space2",
-                        "Agent3",
-                        "Description3",
-                        "ipfs://3"
-                    );
+                const tx3 = await elizaAgentRegistry.registerAgent(
+                    operator.address,
+                    "space2",
+                    "Agent3",
+                    "Description3",
+                    "ipfs://3"
+                );
                 await tx3.wait(1);
                 index = await elizaAgentRegistry.agentIndex();
                 const agent3 = await elizaAgentRegistry.getCreatorLatestAgent(
@@ -432,6 +418,7 @@ describe("Eliza Agent System", function () {
 
                 // Register an agent to become space owner
                 await elizaAgentRegistry.registerAgent(
+                    owner.address,
                     TEST_SPACE,
                     "Test Agent",
                     "Test Description",
@@ -513,6 +500,7 @@ describe("Eliza Agent System", function () {
 
                 // Create another space
                 await elizaAgentRegistry.registerAgent(
+                    owner.address,
                     "another-space",
                     "Another Agent",
                     "Another Description",
@@ -636,14 +624,13 @@ describe("Eliza Agent System", function () {
                 await loadFixture(deployFixture);
 
             // Register a new agent to test with
-            const tx = await elizaAgentRegistry
-                .connect(user)
-                .registerAgent(
-                    "testSpace",
-                    "TestAgent",
-                    "Test Description",
-                    "ipfs://test"
-                );
+            const tx = await elizaAgentRegistry.registerAgent(
+                user.address,
+                "testSpace",
+                "TestAgent",
+                "Test Description",
+                "ipfs://test"
+            );
             await tx.wait(1);
             const index = await elizaAgentRegistry.agentIndex();
             const deployedAgentAddress =

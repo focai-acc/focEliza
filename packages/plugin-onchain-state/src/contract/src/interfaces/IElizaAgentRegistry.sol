@@ -17,6 +17,7 @@ interface IElizaAgentRegistry {
     function updateTemplate(address _agentTemplate) external;
 
     function registerAgent(
+        address creator,
         string calldata _space,
         string calldata _name,
         string calldata _description,

@@ -44,12 +44,13 @@ contract ElizaAgentRegistry is IElizaAgentRegistry, SpaceEnvironmentManager {
     }
 
     function registerAgent(
+        address _creator,
         string calldata _space,
         string calldata _name,
         string calldata _description,
         string calldata _characterURI
     ) external whenNotPaused nonReentrant validSpaceName(_space) returns (address) {
-        address creator = _msgSender();
+        address creator = _creator;
         string calldata space = _space;
         string calldata name = _name;
         string calldata description = _description;
