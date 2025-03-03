@@ -119,7 +119,7 @@ contract ElizaAgent is IElizaAgent, EnvironmentManager {
     }
 
     function getId() external view returns (bytes32) {
-        return info.agentId;
+        return info.id;
     }
 
     function getCreator() external view returns (address) {

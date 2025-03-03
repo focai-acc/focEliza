@@ -476,7 +476,43 @@
         ],
         "name": "getAgentsBySpace",
         "outputs": [
-            { "internalType": "address[]", "name": "", "type": "address[]" }
+            {
+                "components": [
+                    {
+                        "internalType": "string",
+                        "name": "space",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "bytes32",
+                        "name": "id",
+                        "type": "bytes32"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "deploy",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "name",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "description",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "characterURI",
+                        "type": "string"
+                    }
+                ],
+                "internalType": "struct AgentInfo[]",
+                "name": "",
+                "type": "tuple[]"
+            }
         ],
         "stateMutability": "view",
         "type": "function"

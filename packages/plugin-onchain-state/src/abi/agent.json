@@ -433,8 +433,13 @@
                     },
                     {
                         "internalType": "bytes32",
-                        "name": "agentId",
+                        "name": "id",
                         "type": "bytes32"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "deploy",
+                        "type": "address"
                     },
                     {
                         "internalType": "string",
@@ -534,8 +539,13 @@
                     },
                     {
                         "internalType": "bytes32",
-                        "name": "agentId",
+                        "name": "id",
                         "type": "bytes32"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "deploy",
+                        "type": "address"
                     },
                     {
                         "internalType": "string",

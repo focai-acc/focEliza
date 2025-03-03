@@ -3,7 +3,8 @@ pragma solidity ^0.8.28;
 
 struct AgentInfo {
     string space;
-    bytes32 agentId;
+    bytes32 id;
+    address deploy;
     string name;
     string description;
     string characterURI;
@@ -15,8 +16,20 @@ interface IElizaAgent {
 
     event AgentStatusChanged(address indexed operator, bool from, bool to);
     event CharacterURIChanged(address indexed operator, string from, string to);
-    event DBDataRecorded(address indexed operator, string indexed version, string indexed table, string id, bytes content);
-    event StateDataChanged(address indexed operator, string indexed key, bytes from, bytes to, uint64 version);
+    event DBDataRecorded(
+        address indexed operator,
+        string indexed version,
+        string indexed table,
+        string id,
+        bytes content
+    );
+    event StateDataChanged(
+        address indexed operator,
+        string indexed key,
+        bytes from,
+        bytes to,
+        uint64 version
+    );
 
     function initialize(
         address owner,
@@ -24,7 +37,7 @@ interface IElizaAgent {
         AgentInfo calldata _info
     ) external;
 
-    function getInfo() external view returns(AgentInfo memory);
+    function getInfo() external view returns (AgentInfo memory);
 
     function pause() external;
 
@@ -34,9 +47,7 @@ interface IElizaAgent {
 
     function getCreator() external view returns (address);
 
-    function setCharacterURI(
-        string calldata _uri
-    ) external;
+    function setCharacterURI(string calldata _uri) external;
 
     function recordDBData(
         string calldata version,

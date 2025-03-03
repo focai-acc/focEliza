@@ -102,15 +102,16 @@ contract ElizaAgentRegistry is IElizaAgentRegistry, SpaceEnvironmentManager {
         }
 
         bytes32 id = getAgentId(params.space, agentIndex);
+        address agent = Clones.cloneDeterministic(agentTemplate, id);
+
         AgentInfo memory info = AgentInfo({
             space: params.space,
-            agentId: id,
+            id: id,
+            deploy: agent,
             name: params.name,
             description: params.description,
             characterURI: params.characterURI
         });
-
-        address agent = Clones.cloneDeterministic(agentTemplate, id);
         IElizaAgent(agent).initialize(creator, params.operator, info);
 
         if (existingOwner == address(0)) {
@@ -199,7 +200,7 @@ contract ElizaAgentRegistry is IElizaAgentRegistry, SpaceEnvironmentManager {
         string calldata space,
         uint256 startIndex,
         uint256 endIndex
-    ) external view returns (address[] memory) {
+    ) external view returns (AgentInfo[] memory) {
         require(endIndex >= startIndex, "Invalid range");
         require(endIndex <= agentIndex, "End index out of bounds");
 
@@ -219,14 +220,14 @@ contract ElizaAgentRegistry is IElizaAgentRegistry, SpaceEnvironmentManager {
         }
 
         // Second pass: collect agents
-        address[] memory spaceAgents = new address[](count);
+        AgentInfo[] memory spaceAgents = new AgentInfo[](count);
         uint256 arrayIndex = 0;
         for (uint256 i = startIndex; i < endIndex; ) {
             address agent = agentsIndexer[i];
             if (agent != address(0)) {
                 AgentInfo memory info = IElizaAgent(agent).getInfo();
                 if (keccak256(bytes(info.space)) == keccak256(bytes(space))) {
-                    spaceAgents[arrayIndex] = agent;
+                    spaceAgents[arrayIndex] = info;
                     arrayIndex++;
                 }
             }
@@ -256,7 +257,10 @@ contract ElizaAgentRegistry is IElizaAgentRegistry, SpaceEnvironmentManager {
         return spaceOwners[space] == account;
     }
 
-    function _isSpaceOperator(string calldata space, address account) internal view override returns (bool){
+    function _isSpaceOperator(
+        string calldata space,
+        address account
+    ) internal view override returns (bool) {
         return spaceOperators[space][account];
     }
 

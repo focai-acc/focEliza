@@ -44,8 +44,9 @@ describe("Eliza Agent System", function () {
     describe("ElizaAgentRegistry", function () {
         describe("Deployment", function () {
             it("Should set the right owner", async function () {
-                const { owner, elizaAgentRegistry } =
-                    await loadFixture(deployFixture);
+                const { owner, elizaAgentRegistry } = await loadFixture(
+                    deployFixture
+                );
                 expect(
                     await elizaAgentRegistry.hasRole(
                         ethers.ZeroHash,
@@ -55,8 +56,9 @@ describe("Eliza Agent System", function () {
             });
 
             it("Should set the correct agent template", async function () {
-                const { elizaAgent, elizaAgentRegistry } =
-                    await loadFixture(deployFixture);
+                const { elizaAgent, elizaAgentRegistry } = await loadFixture(
+                    deployFixture
+                );
                 expect(await elizaAgentRegistry.agentTemplate()).to.equal(
                     await elizaAgent.getAddress()
                 );
@@ -65,8 +67,9 @@ describe("Eliza Agent System", function () {
 
         describe("Access Control", function () {
             it("Should allow admin to update template", async function () {
-                const { owner, elizaAgentRegistry } =
-                    await loadFixture(deployFixture);
+                const { owner, elizaAgentRegistry } = await loadFixture(
+                    deployFixture
+                );
                 const newTemplate = ethers.Wallet.createRandom().address;
                 await elizaAgentRegistry.updateTemplate(newTemplate);
                 expect(await elizaAgentRegistry.agentTemplate()).to.equal(
@@ -75,8 +78,9 @@ describe("Eliza Agent System", function () {
             });
 
             it("Should not allow non-admin to update template", async function () {
-                const { user, elizaAgentRegistry } =
-                    await loadFixture(deployFixture);
+                const { user, elizaAgentRegistry } = await loadFixture(
+                    deployFixture
+                );
                 const newTemplate = ethers.Wallet.createRandom().address;
                 await expect(
                     elizaAgentRegistry.connect(user).updateTemplate(newTemplate)
@@ -484,8 +488,9 @@ describe("Eliza Agent System", function () {
 
         describe("Space Ownership", function () {
             it("Should allow first user to claim a space", async function () {
-                const { user, elizaAgentRegistry } =
-                    await loadFixture(deployFixture);
+                const { user, elizaAgentRegistry } = await loadFixture(
+                    deployFixture
+                );
                 await expect(
                     elizaAgentRegistry.registerAgent({
                         operator: user.address,
@@ -498,8 +503,9 @@ describe("Eliza Agent System", function () {
             });
 
             it("Should allow space owner to create multiple agents in same space", async function () {
-                const { user, elizaAgentRegistry } =
-                    await loadFixture(deployFixture);
+                const { user, elizaAgentRegistry } = await loadFixture(
+                    deployFixture
+                );
 
                 // First agent registration
 
@@ -720,7 +726,7 @@ describe("Eliza Agent System", function () {
                     0,
                     Number(await elizaAgentRegistry.agentIndex())
                 );
-                expect(space1Agents1).to.deep.equal([agent1]);
+                expect(space1Agents1[0].deploy).to.deep.equal(agent1);
 
                 // Register second agent in space1
                 const tx2 = await elizaAgentRegistry
@@ -746,7 +752,10 @@ describe("Eliza Agent System", function () {
                     0,
                     Number(index)
                 );
-                expect(space1Agents2).to.deep.equal([agent1, agent2]);
+                expect(space1Agents2.map((item) => item.deploy)).to.deep.equal([
+                    agent1,
+                    agent2,
+                ]);
 
                 // Register agent in space2
                 const tx3 = await elizaAgentRegistry
@@ -772,14 +781,17 @@ describe("Eliza Agent System", function () {
                     0,
                     Number(index)
                 );
-                expect(space1Agents3).to.deep.equal([agent1, agent2]);
+                expect(space1Agents3.map((item) => item.deploy)).to.deep.equal([
+                    agent1,
+                    agent2,
+                ]);
 
                 const space2Agents = await elizaAgentRegistry.getAgentsBySpace(
                     "space2",
                     0,
                     Number(index)
                 );
-                expect(space2Agents).to.deep.equal([agent3]);
+                expect(space2Agents[0].deploy).to.deep.equal(agent3);
 
                 // Test invalid ranges
                 await expect(
@@ -809,8 +821,9 @@ describe("Eliza Agent System", function () {
             const TEST_SPACE = "test-space";
 
             async function setupSpaceOwner() {
-                const { owner, user, elizaAgentRegistry } =
-                    await loadFixture(deployFixture);
+                const { owner, user, elizaAgentRegistry } = await loadFixture(
+                    deployFixture
+                );
                 await elizaAgentRegistry.grantRole(
                     OPERATOR_ROLE,
                     owner.address
@@ -869,8 +882,9 @@ describe("Eliza Agent System", function () {
             });
 
             it("Should prevent non-space-owner from setting env", async function () {
-                const { user, elizaAgentRegistry } =
-                    await loadFixture(deployFixture);
+                const { user, elizaAgentRegistry } = await loadFixture(
+                    deployFixture
+                );
                 await elizaAgentRegistry.grantRole(OPERATOR_ROLE, user.address);
 
                 await expect(
@@ -1020,8 +1034,9 @@ describe("Eliza Agent System", function () {
 
     describe("ElizaAgent", function () {
         async function deployAgent() {
-            const { user, operator, elizaAgentRegistry } =
-                await loadFixture(deployFixture);
+            const { user, operator, elizaAgentRegistry } = await loadFixture(
+                deployFixture
+            );
 
             // Register a new agent to test with
             const tx = await elizaAgentRegistry.connect(user).registerAgent({
