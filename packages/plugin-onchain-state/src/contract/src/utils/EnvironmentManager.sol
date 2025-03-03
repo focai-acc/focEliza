@@ -21,6 +21,7 @@ abstract contract EnvironmentManager is AccessControl, Pausable, ReentrancyGuard
 
     mapping(string => string) public envs;
     string[] public envKeys;
+    // Using 1-based indexing to distinguish from default value 0
     mapping(string => uint256) private envKeyIndices;
 
     error InvalidInput();
@@ -81,12 +82,13 @@ abstract contract EnvironmentManager is AccessControl, Pausable, ReentrancyGuard
         string calldata key,
         string calldata value
     ) internal validEnvKey(key) validEnvValue(value) {
-        if (envKeyIndices[key] == 0 && envKeys.length == 0) {
+        // Check if the key already exists
+        // Using 1-based indexing in envKeyIndices, so 0 means the key doesn't exist
+        if (envKeyIndices[key] == 0) {
+            // Key doesn't exist yet, add it to the keys array
             envKeys.push(key);
-            envKeyIndices[key] = 0;
-        } else if (envKeyIndices[key] == 0) {
-            envKeys.push(key);
-            envKeyIndices[key] = envKeys.length - 1;
+            // Store the index + 1 to distinguish from the default value 0
+            envKeyIndices[key] = envKeys.length;
         }
 
         emit EnvChanged(_msgSender(), key, envs[key], value);
@@ -112,15 +114,24 @@ abstract contract EnvironmentManager is AccessControl, Pausable, ReentrancyGuard
     }
 
     function _removeEnv(string calldata key) internal {
-        uint256 index = envKeyIndices[key];
-        if (index == 0 && !key.equal(envKeys[0])) {
+        // Get the 1-based index and convert to 0-based
+        uint256 keyIndex = envKeyIndices[key];
+        if (keyIndex == 0) {
             revert EnvNotFound();
         }
-
+        
+        uint256 index = keyIndex - 1; // Convert to 0-based index
+        
         // Delete the key-value pair
         string memory lastKey = envKeys[envKeys.length - 1];
-        envKeys[index] = lastKey;
-        envKeyIndices[lastKey] = index;
+        
+        if (index != envKeys.length - 1) {
+            // If not the last element, move the last element to the position of the removed element
+            envKeys[index] = lastKey;
+            // Update the index of the moved element (1-based)
+            envKeyIndices[lastKey] = index + 1;
+        }
+        
         envKeys.pop();
         delete envKeyIndices[key];
         delete envs[key];

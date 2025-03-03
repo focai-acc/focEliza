@@ -10,7 +10,11 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  * @title SpaceEnvironmentManager
  * @dev Abstract contract for managing environment variables per space
  */
-abstract contract SpaceEnvironmentManager is AccessControl, Pausable, ReentrancyGuard {
+abstract contract SpaceEnvironmentManager is
+    AccessControl,
+    Pausable,
+    ReentrancyGuard
+{
     using Strings for string;
 
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
@@ -23,15 +27,25 @@ abstract contract SpaceEnvironmentManager is AccessControl, Pausable, Reentrancy
     mapping(string => mapping(string => string)) public spaceEnvs;
     // Mapping from space to env keys array
     mapping(string => string[]) public spaceEnvKeys;
-    // Mapping from space to key indices
+    // Mapping from space to key indices (1-based indexing to distinguish from default value 0)
     mapping(string => mapping(string => uint256)) private spaceEnvKeyIndices;
 
     error InvalidInput();
     error EnvNotFound();
     error UnauthorizedAccess();
 
-    event EnvChanged(string indexed space, address indexed operator, string indexed key, string fromValue, string toValue);
-    event EnvRemoved(string indexed space, address indexed operator, string indexed key);
+    event EnvChanged(
+        string indexed space,
+        address indexed operator,
+        string indexed key,
+        string fromValue,
+        string toValue
+    );
+    event EnvRemoved(
+        string indexed space,
+        address indexed operator,
+        string indexed key
+    );
 
     modifier validEnvKey(string calldata key) {
         if (bytes(key).length == 0 || bytes(key).length > MAX_ENV_KEY_LENGTH) {
@@ -55,23 +69,37 @@ abstract contract SpaceEnvironmentManager is AccessControl, Pausable, Reentrancy
     }
 
     modifier onlySpaceOwnerOrOperator(string calldata space) {
-        if (!(_isSpaceOwner(space, _msgSender()) || _isSpaceOperator(space, _msgSender()))) {
+        if (
+            !(_isSpaceOwner(space, _msgSender()) ||
+                _isSpaceOperator(space, _msgSender()))
+        ) {
             revert UnauthorizedAccess();
         }
         _;
     }
 
     // This function must be implemented by the contract that inherits this one
-    function _isSpaceOwner(string calldata space, address account) internal virtual returns (bool);
+    function _isSpaceOwner(
+        string calldata space,
+        address account
+    ) internal virtual returns (bool);
 
     // This function must be implemented by the contract that inherits this one
-    function _isSpaceOperator(string calldata space, address account) internal virtual returns (bool);
+    function _isSpaceOperator(
+        string calldata space,
+        address account
+    ) internal virtual returns (bool);
 
-    function getSpaceEnv(string calldata space, string calldata key) external view returns (string memory) {
+    function getSpaceEnv(
+        string calldata space,
+        string calldata key
+    ) external view returns (string memory) {
         return spaceEnvs[space][key];
     }
 
-    function getAllSpaceEnvs(string calldata space) external view returns (string[] memory keys, string[] memory values) {
+    function getAllSpaceEnvs(
+        string calldata space
+    ) external view returns (string[] memory keys, string[] memory values) {
         keys = spaceEnvKeys[space];
         values = new string[](keys.length);
         for (uint256 i = 0; i < keys.length; i++) {
@@ -107,12 +135,13 @@ abstract contract SpaceEnvironmentManager is AccessControl, Pausable, Reentrancy
         string calldata key,
         string calldata value
     ) internal validEnvKey(key) validEnvValue(value) {
-        if (spaceEnvKeyIndices[space][key] == 0 && spaceEnvKeys[space].length == 0) {
+        // Check if the key already exists
+        // Using 1-based indexing in spaceEnvKeyIndices, so 0 means the key doesn't exist
+        if (spaceEnvKeyIndices[space][key] == 0) {
+            // Key doesn't exist yet, add it to the keys array
             spaceEnvKeys[space].push(key);
-            spaceEnvKeyIndices[space][key] = 0;
-        } else if (spaceEnvKeyIndices[space][key] == 0) {
-            spaceEnvKeys[space].push(key);
-            spaceEnvKeyIndices[space][key] = spaceEnvKeys[space].length - 1;
+            // Store the index + 1 to distinguish from the default value 0
+            spaceEnvKeyIndices[space][key] = spaceEnvKeys[space].length;
         }
 
         emit EnvChanged(space, _msgSender(), key, spaceEnvs[space][key], value);
@@ -138,16 +167,30 @@ abstract contract SpaceEnvironmentManager is AccessControl, Pausable, Reentrancy
         }
     }
 
-    function _removeSpaceEnv(string calldata space, string calldata key) internal {
-        uint256 index = spaceEnvKeyIndices[space][key];
-        if (index == 0 && !key.equal(spaceEnvKeys[space][0])) {
+    function _removeSpaceEnv(
+        string calldata space,
+        string calldata key
+    ) internal {
+        // Get the 1-based index and convert to 0-based
+        uint256 keyIndex = spaceEnvKeyIndices[space][key];
+        if (keyIndex == 0) {
             revert EnvNotFound();
         }
-
+        
+        uint256 index = keyIndex - 1; // Convert to 0-based index
+        
         // Delete the key-value pair
-        string memory lastKey = spaceEnvKeys[space][spaceEnvKeys[space].length - 1];
-        spaceEnvKeys[space][index] = lastKey;
-        spaceEnvKeyIndices[space][lastKey] = index;
+        string memory lastKey = spaceEnvKeys[space][
+            spaceEnvKeys[space].length - 1
+        ];
+        
+        if (index != spaceEnvKeys[space].length - 1) {
+            // If not the last element, move the last element to the position of the removed element
+            spaceEnvKeys[space][index] = lastKey;
+            // Update the index of the moved element (1-based)
+            spaceEnvKeyIndices[space][lastKey] = index + 1;
+        }
+        
         spaceEnvKeys[space].pop();
         delete spaceEnvKeyIndices[space][key];
         delete spaceEnvs[space][key];
