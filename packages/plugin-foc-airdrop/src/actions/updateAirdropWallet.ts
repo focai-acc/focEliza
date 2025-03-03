@@ -10,10 +10,7 @@ import {
     State,
     type Action,
 } from "@elizaos/core";
-import { z } from "zod";
-import { identityAuthProvider } from "@elizaos/plugin-foc-auth";
 import NodeCache from "node-cache";
-import { bool } from "sharp";
 import { PublicKey } from "@solana/web3.js";
 import { AirdropWallet, airdropWalletProvider } from "../providers/wallet";
 
@@ -47,7 +44,7 @@ export const airdropWalletAction: Action = {
         options: { [key: string]: unknown },
         callback: HandlerCallback
     ): Promise<boolean> => {
-        const smartActionResult = await walletProvider.get(runtime, message, state);
+        const smartActionResult = await airdropWalletProvider.get(runtime, message, state);
         if (!smartActionResult.result) {
             callback({
                 text: smartActionResult.msg,
