@@ -11,11 +11,11 @@ import {
     ServiceType,
     type Action,
 } from "@elizaos/core";
-import { Airdrop, claimAirdropProvider } from "../providers/claimAirdrop";
 import { SPLTransfer } from "../transfer";
-import { identityAuthProvider } from "@elizaos/plugin-foc-auth";
+import { getUserIdFromState } from "@elizaos/plugin-foc-auth";
 import { focAirdropNamespace, airdropWalletPrefix, airdropClaimedPrefix, airdropRulesKey, FocAuthKey } from "../constants";
 import { SmartActionService, SmartActionResult } from "@elizaos/plugin-smart-action";
+import { Airdrop } from "../types/types";
 
 const smartAction = `
 You are tasked with managing an airdrop distribution for users. Follow the rules below to process each user's airdrop:
@@ -77,15 +77,13 @@ export const userAirdropAction: Action = {
         const smartActionService = runtime.getService<SmartActionService>(ServiceType.SMART_ACTION);
 
         // try to auth
-        const userId = identityAuthProvider.getUserIdFromState(state);
-        const userInfo = userId? await identityAuthProvider.getIdentityUser(runtime, userId) : null;
-        const isAuth = userId && userId !== "" && userInfo !== null;
+        const userId = getUserIdFromState(state);
+        const isAuth = userId && userId !== "";
 
         const userState = {
             userId: userId,
             needAuth: !isAuth,
-            nickName: await identityAuthProvider.getIdentityUser(runtime, userId).nickname,
-            walletAddress: await smartActionService.getJsonState(runtime, focAirdropNamespace, `${airdropWalletPrefix}${userId}`).address,
+            walletAddress: (await smartActionService.getJsonState(runtime, focAirdropNamespace, `${airdropWalletPrefix}${userId}`))?.address,
             ifClaimed: await smartActionService.getBoolState(runtime, focAirdropNamespace, `${airdropWalletPrefix}${userId}`),
             contributions: await smartActionService.getState(runtime, focAirdropNamespace, `${airdropRulesKey}${userId}`),
             scoringCriteria: await smartActionService.getState(runtime, focAirdropNamespace, airdropRulesKey),

@@ -11,15 +11,9 @@ import {
     ServiceType,
     type Action,
 } from "@elizaos/core";
-import { z } from "zod";
 import NodeCache from "node-cache";
-import { bool } from "sharp";
 
-import { Airdrop, claimAirdropProvider } from "../providers/claimAirdrop";
-import { airdropWalletProvider } from "../providers/wallet";
-import { solanaPlugin } from "@elizaos/plugin-solana";
-import { SPLTransfer } from "../transfer";
-import { identityAuthProvider } from "@elizaos/plugin-foc-auth";
+import { getUserIdFromState } from "@elizaos/plugin-foc-auth";
 import { focAirdropNamespace, airdropWalletPrefix, airdropClaimedPrefix, airdropRulesKey, FocAuthKey } from "../constants";
 import { SmartActionService, SmartActionResult } from "@elizaos/plugin-smart-action";
 
@@ -76,16 +70,14 @@ export const queryAirdropAction: Action = {
 
         const smartActionService = runtime.getService<SmartActionService>(ServiceType.SMART_ACTION);
 
-        const userId = identityAuthProvider.getUserIdFromState(state);
-        const userInfo = userId? await identityAuthProvider.getIdentityUser(runtime, userId) : null;
-        const isAuth = userId && userId !== "" && userInfo !== null;
+        const userId = getUserIdFromState(state);
+        const isAuth = userId && userId !== "";
 
         const userState = {
             userId: userId,
             needAuth: !isAuth,
-            nickName: isAuth? (await identityAuthProvider.getIdentityUser(runtime, userId)).nickname : "",
-            walletAddress: await smartActionService.getJsonState(runtime, focAirdropNamespace, `${airdropWalletPrefix}${userId}`).address,
-            ifClaimed: await smartActionService.getBoolState(runtime, focAirdropNamespace, `${airdropWalletPrefix}${userId}`),
+            walletAddress: (await smartActionService.getJsonState(runtime, focAirdropNamespace, `${airdropWalletPrefix}${userId}`))?.address,
+            ifClaimed: await smartActionService.getBoolState(runtime, focAirdropNamespace, `${airdropClaimedPrefix}${userId}`),
             contributions: await smartActionService.getState(runtime, focAirdropNamespace, `${airdropRulesKey}${userId}`),
             scoringCriteria: await smartActionService.getState(runtime, focAirdropNamespace, airdropRulesKey),
         }

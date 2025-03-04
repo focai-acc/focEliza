@@ -8,11 +8,15 @@ import {
     Memory,
     ModelClass,
     State,
+    ServiceType,
     type Action,
 } from "@elizaos/core";
 import NodeCache from "node-cache";
 import { PublicKey } from "@solana/web3.js";
-import { AirdropWallet, airdropWalletProvider } from "../providers/wallet";
+import { AirdropWallet } from "../types/types";
+import { getUserIdFromState } from "@elizaos/plugin-foc-auth";
+import { focAirdropNamespace, airdropWalletPrefix, FocAuthKey } from "../constants";
+import { SmartActionService, SmartActionResult } from "@elizaos/plugin-smart-action";
 
 const cache: NodeCache = new NodeCache({ stdTTL: 30 * 60 }); // Cache TTL set to 30 minutes
 
@@ -44,7 +48,51 @@ export const airdropWalletAction: Action = {
         options: { [key: string]: unknown },
         callback: HandlerCallback
     ): Promise<boolean> => {
-        const smartActionResult = await airdropWalletProvider.get(runtime, message, state);
+        // Initialize or update state
+        if (!state) {
+            state = (await runtime.composeState(message)) as State;
+        } else {
+            state = await runtime.updateRecentMessageState(state);
+        }
+
+        // try to auth
+        const userId = getUserIdFromState(state);
+        const isAuth = userId && userId !== "";
+
+        const userState = {
+            userId: userId,
+            needAuth: !isAuth,
+        }
+
+        const smartAction = `
+You are responsible for managing user wallets. Please follow these steps precisely:
+
+1. **User Authentication Check:**
+   - Directly reference the \`needAuth\` field from the provided UserState JSON;
+   - If \`needAuth\` is true, immediately notify the user that identity verification is required before proceeding.
+   - If \`needAuth\` is false, continue with updating the user's information.
+
+2. **Wallet Retrieval:**
+   - Search the recent conversation for a provided wallet address.
+   - Validate that the wallet address is a proper Solana address (for this task, assume a valid address is any non-empty string that meets the expected pattern).
+   - If validation fails, halt the process and notify the user that the wallet address is invalid.
+
+3. **State Transition Execution:**
+   - Extract the wallet address from the conversation and assign it to the key \`walletAddress\`.
+   - Retrieve the \`userId\` from the UserState JSON and assign it to the key \`userId\`.
+`.trim();
+
+
+        const smartActionService = runtime.getService<SmartActionService>(ServiceType.SMART_ACTION);
+        const smartActionResult = await smartActionService.generateObject(
+            userState,
+            smartAction,
+            ModelClass.LARGE,
+            runtime,
+            message,
+            state
+        );
+
         if (!smartActionResult.result) {
             callback({
                 text: smartActionResult.msg,
@@ -66,7 +114,7 @@ export const airdropWalletAction: Action = {
                 return false;
             }
 
-            await airdropWalletProvider.setWalletToState(runtime, wallet.address, wallet);
+            await smartActionService.setState(runtime, focAirdropNamespace, wallet.address, JSON.stringify(wallet));
             callback({
                 text: smartActionResult.msg,
             });
