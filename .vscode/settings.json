@@ -43,5 +43,6 @@
     },
     "[shellscript]": {
         "editor.defaultFormatter": "foxundermoon.shell-format"
-    }
+    },
+    "sarif-viewer.connectToGithubCodeScanning": "off"
 }

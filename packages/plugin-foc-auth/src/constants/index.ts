@@ -17,7 +17,7 @@ export async function FocAuthKey(runtime: IAgentRuntime): Promise<string> {
     const teeMode = runtime.getSetting("TEE_MODE") || TEEMode.OFF;
     const keyProvider = new DeriveKeyProvider(teeMode);
     const keyPath = `/${runtime.agentId}/tee/keypair/${bizMod}`;
-        const seed = await this.provider.rawDeriveKey(keyPath, runtime.agentId);
+        const seed = await keyProvider.rawDeriveKey(keyPath, runtime.agentId);
         const privateKey = crypto.createPrivateKey({
             key: seed.key,
             format: "pem",

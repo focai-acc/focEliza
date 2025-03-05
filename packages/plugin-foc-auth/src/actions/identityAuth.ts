@@ -8,9 +8,12 @@ import {
     Memory,
     ModelClass,
     State,
+    ServiceType,
     type Action,
 } from "@elizaos/core";
-import { identityAuthProvider, IdentityUser } from "../providers/identityAuth";
+import { IdentityUser, getUserIdFromState } from "../types/types";
+import { SmartActionService } from "@elizaos/plugin-smart-action";
+import { focAuthNamespace, userInfoPrefix, FocAuthKey } from "../constants";
 
 export const identityAuthAction: Action = {
 
@@ -23,7 +26,7 @@ export const identityAuthAction: Action = {
         "AUTH_IDENTITY",
         "AUTH_ID"
     ],
-    validate: async (_runtime: IAgentRuntime, _message: Memory) => {
+    validate: async (_runtime: IAgentRuntime, message: Memory) => {
         return true;
     },
     description: "The user completes their identity authentication with the AI agent.",
@@ -34,7 +37,63 @@ export const identityAuthAction: Action = {
         options: { [key: string]: unknown },
         callback: HandlerCallback
     ): Promise<boolean> => {
-        const smartActionResult = await identityAuthProvider.get(runtime, message, state);
+        // Initialize or update state
+        if (!state) {
+            state = (await runtime.composeState(message)) as State;
+        } else {
+            state = await runtime.updateRecentMessageState(state);
+        }
+
+        const smartActionService = runtime.getService<SmartActionService>(ServiceType.SMART_ACTION);
+
+        const userId = getUserIdFromState(state);
+        const userInfo = userId? await smartActionService.getJsonState(runtime, focAuthNamespace, `${userInfoPrefix}${userId}`) : null;
+
+        const userState = {
+            userId: userId,
+            needAuth: !userId || userId.trim() === "",
+            nickname: (userInfo && userInfo.nickname)? userInfo.nickname: "",
+            description: (userInfo && userInfo.description)? userInfo.description: "",
+            avatarUrl: (userInfo && userInfo.avatarUrl)? userInfo.avatarUrl: "",
+            email :(userInfo && userInfo.email)? userInfo.email: "",
+            options: (userInfo && userInfo.options)? userInfo.options: "",
+        }
+
+        // 2. define smart action
+        const smartAction = `
+Your objective is to manage and update the user's information according to the following precise steps:
+
+1. **Authentication Verification:**
+    - Check the \`needAuth\` field in the provided \`UserState\` JSON.
+    - **If \`needAuth\` is \`true\`:**
+      - Immediately output a JSON response indicating that identity verification is required.
+      - Do not modify or update any state.
+    - **If \`needAuth\` is \`false\`:**
+      - Proceed with updating the user information.
+
+2. **Extracting User Updates:**
+    - Analyze the recent conversation to determine if the user has provided updated details.
+    - The required fields to update are:
+      - \`userId\` - copy directly from the \`userId\` in the \`UserState\`.
+      - \`nickname\`
+      - \`description\`
+      - \`avatarUrl\`
+      - \`email\`
+      - \`options\`
+    - For each field:
+      - If a new value is explicitly provided in the conversation, use that new value.
+      - If no new value is provided, retain the existing value from the \`UserState\`.
+`.trim();
+
+        const smartActionResult = await smartActionService.generateObject(
+            userState,
+            smartAction,
+            ModelClass.LARGE,
+            runtime,
+            message,
+            state
+        );
+
         if (!smartActionResult.result) {
             callback({
                 text: smartActionResult.msg,
@@ -51,7 +110,7 @@ export const identityAuthAction: Action = {
                 email:smartActionResult.states.find(state => state.key.toLowerCase() === "email")?.value ?? null,
                 options:smartActionResult.states.find(state => state.key.toLowerCase() === "options")?.value ?? null,
             };
-            await identityAuthProvider.updateIdentityUser(runtime, userInfo);
+            await smartActionService.setState(runtime, focAuthNamespace, `${userInfoPrefix}${userId}`, JSON.stringify(userInfo));
             callback({
                 text: smartActionResult.msg,
             });
