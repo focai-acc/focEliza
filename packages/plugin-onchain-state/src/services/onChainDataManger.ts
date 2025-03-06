@@ -22,8 +22,8 @@ export class _OnChainDataManger {
     private pinata: PinataSDK;
     private agentRegistryContract: Contract;
     private agentContracts: Record<string, Contract> = {};
-    private spaceEnvs: Record<string, Record<string,string>> = {};
-    private agentEnvs: Record<string, Record<string,string>> = {};
+    private spaceEnvs: Record<string, Record<string, string>> = {};
+    private agentEnvs: Record<string, Record<string, string>> = {};
 
     public async initialize(agentIds: string[]) {
         if (this.initialized) {
@@ -37,9 +37,7 @@ export class _OnChainDataManger {
             "utf-8"
         );
 
-        this.rpcProvider = new JsonRpcProvider(
-            process.env.ON_CHAIN_STATE_RPC
-        );
+        this.rpcProvider = new JsonRpcProvider(process.env.ON_CHAIN_STATE_RPC);
 
         this.agentRegistryContract = new ethers.Contract(
             process.env.ON_CHAIN_STATE_AGENT_REGISTER,
@@ -52,10 +50,9 @@ export class _OnChainDataManger {
             "utf-8"
         );
 
-        console.log("agentIds",agentIds);
         for (const agentId of this.agentIds) {
-            const agentAdress = await this.agentRegistryContract.getAgent(agentId);
-            console.log("agentAdress",agentAdress);
+            const agentAdress =
+                await this.agentRegistryContract.getAgent(agentId);
             const contract = new ethers.Contract(
                 agentAdress,
                 agentAbi,
@@ -68,35 +65,50 @@ export class _OnChainDataManger {
     }
 
     public async fetchCharacter(): Promise<any> {
-        if(!this.pinata) {
-            this.pinata = new PinataSDK({
-                pinataJwt: process.env.ON_CHAIN_STATE_PINATA_JWT,
-                pinataGateway: process.env.ON_CHAIN_STATE_PINATA_GETEWAY,
-            });
-        }
-        const result = [];
+        // if(!this.pinata) {
+        //     this.pinata = new PinataSDK({
+        //         pinataJwt: process.env.ON_CHAIN_STATE_PINATA_JWT,
+        //         pinataGateway: process.env.ON_CHAIN_STATE_PINATA_GETEWAY,
+        //     });
+        // }
+        const list = [];
         for (const agentId of this.agentIds) {
             const info = await this.agentContracts[agentId].getInfo();
             const uri = info.characterURI as String;
-            if(uri && uri.length > 0 && uri.indexOf("ipfs://") >= 0) {
+            if (uri && uri.length > 0 && uri.indexOf("ipfs://") >= 0) {
                 const cid = uri.substring(7);
-                const data = await this.pinata.gateways.get(cid);
-                result.push(data.data);
+                // const result = await this.pinata.gateways.get(cid);
+                const response = await fetch(
+                    `${process.env.ON_CHAIN_STATE_DOMAIN}/ipfs/download?cid=${cid}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                    }
+                );
+                const result = await response.json();
+                if (result.status === "success") {
+                    list.push(result.data);
+                }
             }
         }
-        return result;
+        return list;
     }
 
     public getAgentContract(agentId: string) {
         return this.agentContracts[agentId];
     }
 
-    public async pullSpaceAllEnvs(space: string): Promise<Record<string,string>> {
-        if(!this.spaceEnvs[space]) {
-            this.spaceEnvs[space]={}
+    public async pullSpaceAllEnvs(
+        space: string
+    ): Promise<Record<string, string>> {
+        if (!this.spaceEnvs[space]) {
+            this.spaceEnvs[space] = {};
         }
-        const [keys,values] = await this.agentRegistryContract.getAllSpaceEnvs(space);
-        console.log("pullSpaceAllEnvs:",space,keys,values);
+        const [keys, values] =
+            await this.agentRegistryContract.getAllSpaceEnvs(space);
+        console.log("pullSpaceAllEnvs:", space, keys, values);
         for (let index = 0; index < keys.length; index++) {
             const key = keys[index];
             this.spaceEnvs[space][key] = values[index];
@@ -108,13 +120,13 @@ export class _OnChainDataManger {
         return this.spaceEnvs[space][key];
     }
 
-    public async pullAllEnvs(agentId: string): Promise<Record<string,string>> {
-        if(!this.agentEnvs[agentId]) {
-            this.agentEnvs[agentId]={}
+    public async pullAllEnvs(agentId: string): Promise<Record<string, string>> {
+        if (!this.agentEnvs[agentId]) {
+            this.agentEnvs[agentId] = {};
         }
         const contract = this.agentContracts[agentId];
-        const [keys,values] = await contract.getAllEnvs();
-        console.log("pullAllEnvs:",agentId,keys,values);
+        const [keys, values] = await contract.getAllEnvs();
+        console.log("pullAllEnvs:", agentId, keys, values);
         for (let index = 0; index < keys.length; index++) {
             const key = keys[index];
             this.agentEnvs[agentId][key] = values[index];

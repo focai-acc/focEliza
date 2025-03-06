@@ -52,8 +52,8 @@ import {
     type Memory,
 } from "./types.ts";
 import { stringToUuid } from "./uuid.ts";
-import { readFile } from 'fs/promises';
-import { join } from 'path';
+import { readFile } from "fs/promises";
+import { join } from "path";
 
 /**
  * Represents the runtime environment for an agent, handling message processing,
@@ -309,7 +309,7 @@ export class AgentRuntime implements IAgentRuntime {
 
         this.ragKnowledgeManager = new RAGKnowledgeManager({
             runtime: this,
-            tableName: 'knowledge'
+            tableName: "knowledge",
         });
 
         (opts.managers ?? []).forEach((manager: IMemoryManager) => {
@@ -411,6 +411,8 @@ export class AgentRuntime implements IAgentRuntime {
     }
 
     async initialize() {
+        // Initialize on-chain state service first, because of space env.
+
         for (const [serviceType, service] of this.services.entries()) {
             try {
                 await service.initialize(this);
@@ -439,11 +441,13 @@ export class AgentRuntime implements IAgentRuntime {
             this.character.knowledge &&
             this.character.knowledge.length > 0
         ) {
-            if(this.character.settings.ragKnowledge) {
-                await this.processCharacterRAGKnowledge(this.character.knowledge);
+            if (this.character.settings.ragKnowledge) {
+                await this.processCharacterRAGKnowledge(
+                    this.character.knowledge
+                );
             } else {
-                const stringKnowledge = this.character.knowledge.filter((item): item is string =>
-                    typeof item === 'string'
+                const stringKnowledge = this.character.knowledge.filter(
+                    (item): item is string => typeof item === "string"
                 );
 
                 await this.processCharacterKnowledge(stringKnowledge);
@@ -512,19 +516,21 @@ export class AgentRuntime implements IAgentRuntime {
      * then chunks the content into fragments, embeds each fragment, and creates fragment knowledge.
      * An array of knowledge items or objects containing id, path, and content.
      */
-    private async processCharacterRAGKnowledge(items: (string | { path: string; shared?: boolean })[]) {
+    private async processCharacterRAGKnowledge(
+        items: (string | { path: string; shared?: boolean })[]
+    ) {
         let hasError = false;
 
         for (const item of items) {
             if (!item) continue;
 
             try {
-                 // Check if item is marked as shared
+                // Check if item is marked as shared
                 let isShared = false;
                 let contentItem = item;
 
                 // Only treat as shared if explicitly marked
-                if (typeof item === 'object' && 'path' in item) {
+                if (typeof item === "object" && "path" in item) {
                     isShared = item.shared === true;
                     contentItem = item.path;
                 } else {
@@ -532,24 +538,39 @@ export class AgentRuntime implements IAgentRuntime {
                 }
 
                 const knowledgeId = stringToUuid(contentItem);
-                const fileExtension = contentItem.split('.').pop()?.toLowerCase();
+                const fileExtension = contentItem
+                    .split(".")
+                    .pop()
+                    ?.toLowerCase();
 
                 // Check if it's a file or direct knowledge
-                if (fileExtension && ['md', 'txt', 'pdf'].includes(fileExtension)) {
+                if (
+                    fileExtension &&
+                    ["md", "txt", "pdf"].includes(fileExtension)
+                ) {
                     try {
-                        const rootPath = join(process.cwd(), '..');
-                        const filePath = join(rootPath, 'characters', 'knowledge', contentItem);
-                        elizaLogger.info("Attempting to read file from:", filePath);
+                        const rootPath = join(process.cwd(), "..");
+                        const filePath = join(
+                            rootPath,
+                            "characters",
+                            "knowledge",
+                            contentItem
+                        );
+                        elizaLogger.info(
+                            "Attempting to read file from:",
+                            filePath
+                        );
 
                         // Get existing knowledge first
-                        const existingKnowledge = await this.ragKnowledgeManager.getKnowledge({
-                            id: knowledgeId,
-                            agentId: this.agentId
-                        });
+                        const existingKnowledge =
+                            await this.ragKnowledgeManager.getKnowledge({
+                                id: knowledgeId,
+                                agentId: this.agentId,
+                            });
 
                         let content: string;
 
-                        content = await readFile(filePath, 'utf8');
+                        content = await readFile(filePath, "utf8");
 
                         if (!content) {
                             hasError = true;
@@ -558,15 +579,22 @@ export class AgentRuntime implements IAgentRuntime {
 
                         // If the file exists in DB, check if content has changed
                         if (existingKnowledge.length > 0) {
-                            const existingContent = existingKnowledge[0].content.text;
+                            const existingContent =
+                                existingKnowledge[0].content.text;
                             if (existingContent === content) {
-                                elizaLogger.info(`File ${contentItem} unchanged, skipping`);
+                                elizaLogger.info(
+                                    `File ${contentItem} unchanged, skipping`
+                                );
                                 continue;
                             } else {
                                 // If content changed, remove old knowledge before adding new
-                                await this.ragKnowledgeManager.removeKnowledge(knowledgeId);
+                                await this.ragKnowledgeManager.removeKnowledge(
+                                    knowledgeId
+                                );
                                 // Also remove any associated chunks
-                                await this.ragKnowledgeManager.removeKnowledge(`${knowledgeId}-chunk-*` as UUID);
+                                await this.ragKnowledgeManager.removeKnowledge(
+                                    `${knowledgeId}-chunk-*` as UUID
+                                );
                             }
                         }
 
@@ -580,15 +608,14 @@ export class AgentRuntime implements IAgentRuntime {
                         await this.ragKnowledgeManager.processFile({
                             path: contentItem,
                             content: content,
-                            type: fileExtension as 'pdf' | 'md' | 'txt',
-                            isShared: isShared
+                            type: fileExtension as "pdf" | "md" | "txt",
+                            isShared: isShared,
                         });
-
                     } catch (error: any) {
                         hasError = true;
                         elizaLogger.error(
                             `Failed to read knowledge file ${contentItem}. Error details:`,
-                            error?.message || error || 'Unknown error'
+                            error?.message || error || "Unknown error"
                         );
                         continue; // Continue to next item even if this one fails
                     }
@@ -601,13 +628,16 @@ export class AgentRuntime implements IAgentRuntime {
                         contentItem.slice(0, 100)
                     );
 
-                    const existingKnowledge = await this.ragKnowledgeManager.getKnowledge({
-                        id: knowledgeId,
-                        agentId: this.agentId
-                    });
+                    const existingKnowledge =
+                        await this.ragKnowledgeManager.getKnowledge({
+                            id: knowledgeId,
+                            agentId: this.agentId,
+                        });
 
                     if (existingKnowledge.length > 0) {
-                        elizaLogger.info(`Direct knowledge ${knowledgeId} already exists, skipping`);
+                        elizaLogger.info(
+                            `Direct knowledge ${knowledgeId} already exists, skipping`
+                        );
                         continue;
                     }
 
@@ -617,34 +647,40 @@ export class AgentRuntime implements IAgentRuntime {
                         content: {
                             text: contentItem,
                             metadata: {
-                                type: 'direct'
-                            }
-                        }
+                                type: "direct",
+                            },
+                        },
                     });
                 }
             } catch (error: any) {
                 hasError = true;
                 elizaLogger.error(
                     `Error processing knowledge item ${item}:`,
-                    error?.message || error || 'Unknown error'
+                    error?.message || error || "Unknown error"
                 );
                 continue; // Continue to next item even if this one fails
             }
         }
 
         if (hasError) {
-            elizaLogger.warn('Some knowledge items failed to process, but continuing with available knowledge');
+            elizaLogger.warn(
+                "Some knowledge items failed to process, but continuing with available knowledge"
+            );
         }
     }
 
     onChainEnable() {
-        return process.env.ON_CHAIN_STATE_AGENT_IDS&&process.env.ON_CHAIN_STATE_AGENT_REGISTER&&process.env.ON_CHAIN_STATE_RPC;
+        return (
+            process.env.ON_CHAIN_STATE_AGENT_IDS &&
+            process.env.ON_CHAIN_STATE_AGENT_REGISTER &&
+            process.env.ON_CHAIN_STATE_RPC
+        );
     }
 
     getSetting(key: string) {
-        if(this.onChainEnable()) {
+        if (this.onChainEnable()) {
             const service = this.services.get(ServiceType.ONCHAIN_STATE);
-            if(service) {
+            if (service) {
                 return (service as IOnchainStateService).getEnv(key);
             }
         }
@@ -1192,18 +1228,18 @@ Text: ${attachment.text}
         }
 
         let knowledgeData = [];
-        let formattedKnowledge = '';
+        let formattedKnowledge = "";
 
-        if(this.character.settings?.ragKnowledge) {
+        if (this.character.settings?.ragKnowledge) {
             const recentContext = recentMessagesData
-            .slice(-3) // Last 3 messages
-            .map(msg => msg.content.text)
-            .join(' ');
+                .slice(-3) // Last 3 messages
+                .map((msg) => msg.content.text)
+                .join(" ");
 
             knowledgeData = await this.ragKnowledgeManager.getKnowledge({
                 query: message.content.text,
                 conversationContext: recentContext,
-                limit: 5
+                limit: 5,
             });
 
             formattedKnowledge = formatKnowledge(knowledgeData);

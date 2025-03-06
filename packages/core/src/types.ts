@@ -1345,6 +1345,7 @@ export interface ITeeLogService extends Service {
 }
 
 export interface IOnchainStateService extends Service {
+    getWalletAddress();
     getEnv(key: string);
     get(key: string): Promise<{
         value: string;

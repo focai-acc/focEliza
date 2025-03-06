@@ -99,7 +99,10 @@ import yargs from "yargs";
 import { smartActionPlugin } from "@elizaos/plugin-smart-action";
 import { focAuthPlugin } from "@elizaos/plugin-foc-auth";
 import { focAirdropPlugin } from "@elizaos/plugin-foc-airdrop";
-import { onChainStatePlugin, OnChainDataManger } from "@elizaos/plugin-onchain-state";
+import {
+    onChainStatePlugin,
+    OnChainDataManger,
+} from "@elizaos/plugin-onchain-state";
 
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename); // get the name of the directory
@@ -271,9 +274,9 @@ export async function loadCharacters(
 async function loadCharacterFromOnChain(): Promise<Character[]> {
     const loadedCharacters = [];
     try {
-        let agentIds = process.env.ON_CHAIN_STATE_AGENT_IDS
-            ?.split(",")
-            .map((item) => item.trim());
+        let agentIds = process.env.ON_CHAIN_STATE_AGENT_IDS?.split(",").map(
+            (item) => item.trim()
+        );
         await OnChainDataManger.initialize(agentIds);
 
         const datas = await OnChainDataManger.fetchCharacter();
@@ -323,13 +326,10 @@ async function loadCharacterFromOnChain(): Promise<Character[]> {
         }
         return loadedCharacters;
     } catch (e) {
-        elizaLogger.error(
-            `Error parsing on-chain character: ${e}`
-        );
+        elizaLogger.error(`Error parsing on-chain character: ${e}`);
         process.exit(1);
     }
 }
-
 
 export function getTokenForProvider(
     provider: ModelProviderName,
@@ -592,22 +592,25 @@ export async function initializeClients(
 }
 
 function getSecret(character: Character, secret: string) {
-    if(onChainEnable()) {
+    if (onChainEnable()) {
         return getOnChainEnv(secret, character.id);
     }
     return character.settings?.secrets?.[secret] || process.env[secret];
 }
 
 function getEnv(key: string) {
-    if(onChainEnable()) {
+    if (onChainEnable()) {
         return getOnChainEnv(key);
     }
     return process.env[key];
 }
 
-function getOnChainEnv(key:string, agentId?:string) {
-    const envInSpace = OnChainDataManger.getSpaceEnv(process.env.ON_CHAIN_STATE_AGENT_SPACE, key);
-    const envInAgent = agentId?OnChainDataManger.getEnv(agentId, key):null;
+function getOnChainEnv(key: string, agentId?: string) {
+    const envInSpace = OnChainDataManger.getSpaceEnv(
+        process.env.ON_CHAIN_STATE_AGENT_SPACE,
+        key
+    );
+    const envInAgent = agentId ? OnChainDataManger.getEnv(agentId, key) : null;
     return envInAgent || envInSpace;
 }
 
@@ -767,9 +770,9 @@ export async function createAgent(
                 : []),
             ...(teeMode !== TEEMode.OFF && walletSecretSalt ? [teePlugin] : []),
             getSecret(character, "SGX") ? sgxPlugin : null,
-            (getSecret(character, "ENABLE_TEE_LOG") &&
-                ((teeMode !== TEEMode.OFF && walletSecretSalt) ||
-                    getSecret(character, "SGX")))
+            getSecret(character, "ENABLE_TEE_LOG") &&
+            ((teeMode !== TEEMode.OFF && walletSecretSalt) ||
+                getSecret(character, "SGX"))
                 ? teeLogPlugin
                 : null,
             getSecret(character, "COINBASE_API_KEY") &&
@@ -1000,7 +1003,11 @@ const checkPortAvailable = (port: number): Promise<boolean> => {
 };
 
 function onChainEnable() {
-    return process.env.ON_CHAIN_STATE_AGENT_IDS&&process.env.ON_CHAIN_STATE_AGENT_REGISTER && process.env.ON_CHAIN_STATE_RPC;
+    return (
+        process.env.ON_CHAIN_STATE_AGENT_IDS &&
+        process.env.ON_CHAIN_STATE_AGENT_REGISTER &&
+        process.env.ON_CHAIN_STATE_RPC
+    );
 }
 
 const startAgents = async () => {
@@ -1016,7 +1023,9 @@ const startAgents = async () => {
 
     if (onChainEnable()) {
         characters = await loadCharacterFromOnChain();
-        await OnChainDataManger.pullSpaceAllEnvs(process.env.ON_CHAIN_STATE_AGENT_SPACE);
+        await OnChainDataManger.pullSpaceAllEnvs(
+            process.env.ON_CHAIN_STATE_AGENT_SPACE
+        );
     }
 
     try {

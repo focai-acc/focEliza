@@ -52,7 +52,11 @@ export class OnChainStateService
         this.stateManager = new SqliteStateData(
             this.runtime.databaseAdapter.db
         );
+
         await this.stateManager.initialize(runtime.agentId);
+
+        // Initialize wallet if not already done
+        await this.initialWallet();
 
         this.initialized = true;
     }
@@ -61,14 +65,14 @@ export class OnChainStateService
         hexPrivateKey: string;
         keypair: PrivateKeyAccount;
     }> {
-        const teeMode = this.runtime.getSetting("TEE_MODE");
+        const teeMode = this._getEnv("TEE_MODE");
         if (teeMode === TEEMode.OFF) {
-            return;
+            return null;
         }
         const deriveKeyProvider = new DeriveKeyProvider(teeMode);
         try {
             const walletSecretSalt =
-                this.runtime.getSetting("WALLET_SECRET_SALT");
+                process.env.ON_CHAIN_STATE_WALLET_SECRET_SALT;
             if (!walletSecretSalt) {
                 throw new Error(
                     "WALLET_SECRET_SALT required when TEE_MODE is enabled"
@@ -87,10 +91,16 @@ export class OnChainStateService
                 this.runtime.agentId
             );
 
-            return {
-                hexPrivateKey: hex,
-                keypair: response2.keypair,
-            };
+            this.wallet = new ethers.Wallet(hex, this.dataManager.rpcProvider);
+
+            this.agentContractWrite = this.agentContract.connect(
+                this.wallet
+            ) as Contract;
+
+            elizaLogger.info(
+                "On-chain State Service init wallet address:",
+                this.wallet.address
+            );
         } catch (error) {
             elizaLogger.error("Error in init wallet provider:", error.message);
         }
@@ -105,10 +115,13 @@ export class OnChainStateService
                 data.key,
                 data.version
             );
-            if (data.value != valueOnchain) {
+            if (
+                data.value != valueOnchain &&
+                ethers.getBytes(valueOnchain).length > 0
+            ) {
                 this.stateManager.addStateData({
                     key: data.key,
-                    value: valueOnchain,
+                    value: ethers.hexlify(valueOnchain),
                     version: data.version,
                     hash: data.hash,
                     status: "confirmed",
@@ -117,17 +130,21 @@ export class OnChainStateService
         }
     }
 
+    _getEnv(key: string) {
+        const envInSpace = this.dataManager.getSpaceEnv(
+            process.env.ON_CHAIN_STATE_AGENT_SPACE,
+            key
+        );
+        const envInAgent = this.dataManager.getEnv(this.runtime.agentId, key);
+        return envInAgent || envInSpace;
+    }
+
     getEnv(key: string) {
         if (this.initialized) {
-            const envInSpace = this.dataManager.getSpaceEnv(
-                process.env.ON_CHAIN_STATE_AGENT_SPACE,
-                key
-            );
-            const envInAgent = this.dataManager.getEnv(
-                this.runtime.agentId,
-                key
-            );
-            return envInAgent || envInSpace;
+            const result = this._getEnv(key);
+            if (result) {
+                return result;
+            }
         }
         return process.env[key];
     }
@@ -184,6 +201,13 @@ export class OnChainStateService
         return await this.writeStateDataOnChain(key, value, true, version);
     }
 
+    getWalletAddress() {
+        if (this.initialized) {
+            return this.wallet.address;
+        }
+        return "";
+    }
+
     async fetchAgentInfo(): Promise<{}> {
         return await this.agentContract.info();
     }
@@ -199,31 +223,15 @@ export class OnChainStateService
         version = 1
     ): Promise<boolean> {
         try {
-            // Initialize wallet if not already done
-            if (!this.wallet) {
-                const result = await this.initialWallet();
-                elizaLogger.info(
-                    "On-chain State Service init wallet address:",
-                    result.keypair.address
-                );
-                this.wallet = new ethers.Wallet(
-                    result.hexPrivateKey,
-                    this.dataManager.rpcProvider
-                );
-                this.agentContractWrite = this.agentContract.connect(
-                    this.wallet
-                ) as Contract;
-            }
             const tx = await this.agentContractWrite.storeStateData(
                 key,
                 ethers.toUtf8Bytes(value),
                 version
             );
+
             const receipt: ContractTransactionReceipt = await tx.wait(1);
             if (receipt.status === 0) {
-                throw new Error(
-                    "On-chain State Service transaction of write on-chain data is failed"
-                );
+                return false;
             }
 
             /* receipt *
@@ -293,10 +301,7 @@ export class OnChainStateService
                 );
                 return true;
             } else {
-                // unparsed event from lastest block.
-                throw new Error(
-                    "On-chain State Service unparsed event from lastest block"
-                );
+                return false;
             }
         } catch (error) {
             // Update status to failed in database if error occurs
@@ -310,7 +315,8 @@ export class OnChainStateService
                 "On-chain State Service storing state data failed:",
                 error.message
             );
-            throw error;
+
+            return false;
         }
     }
 
