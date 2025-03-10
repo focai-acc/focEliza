@@ -29,6 +29,8 @@ abstract contract SpaceEnvironmentManager is
     mapping(string => string[]) public spaceEnvKeys;
     // Mapping from space to key indices (1-based indexing to distinguish from default value 0)
     mapping(string => mapping(string => uint256)) private spaceEnvKeyIndices;
+    // Track which values are encrypted per space
+    mapping(string => mapping(string => bool)) public isSpaceEnvEncrypted;
 
     error InvalidInput();
     error EnvNotFound();
@@ -39,7 +41,8 @@ abstract contract SpaceEnvironmentManager is
         address indexed operator,
         string indexed key,
         string fromValue,
-        string toValue
+        string toValue,
+        bool encrypted
     );
     event EnvRemoved(
         string indexed space,
@@ -99,12 +102,23 @@ abstract contract SpaceEnvironmentManager is
 
     function getAllSpaceEnvs(
         string calldata space
-    ) external view returns (string[] memory keys, string[] memory values) {
+    ) external view returns (string[] memory keys, string[] memory values, bool[] memory encrypted) {
         keys = spaceEnvKeys[space];
         values = new string[](keys.length);
+        encrypted = new bool[](keys.length);
         for (uint256 i = 0; i < keys.length; i++) {
             values[i] = spaceEnvs[space][keys[i]];
+            encrypted[i] = isSpaceEnvEncrypted[space][keys[i]];
         }
+    }
+
+    function setSpaceEnv(
+        string calldata space,
+        string calldata key,
+        string calldata value,
+        bool encrypt
+    ) external onlySpaceOwnerOrOperator(space) {
+        _setSpaceEnv(space, key, value, encrypt);
     }
 
     function setSpaceEnv(
@@ -112,7 +126,16 @@ abstract contract SpaceEnvironmentManager is
         string calldata key,
         string calldata value
     ) external onlySpaceOwnerOrOperator(space) {
-        _setSpaceEnv(space, key, value);
+        _setSpaceEnv(space, key, value, false);
+    }
+
+    function setSpaceEnvs(
+        string calldata space,
+        string[] calldata keys,
+        string[] calldata values,
+        bool[] calldata encrypt
+    ) external onlySpaceOwnerOrOperator(space) whenNotPaused nonReentrant {
+        _setSpaceEnvs(space, keys, values, encrypt);
     }
 
     function setSpaceEnvs(
@@ -120,7 +143,11 @@ abstract contract SpaceEnvironmentManager is
         string[] calldata keys,
         string[] calldata values
     ) external onlySpaceOwnerOrOperator(space) whenNotPaused nonReentrant {
-        _setSpaceEnvs(space, keys, values);
+        bool[] memory defaultEncrypt = new bool[](keys.length);
+        for (uint256 i = 0; i < keys.length; i++) {
+            defaultEncrypt[i] = false;
+        }
+        _setSpaceEnvs(space, keys, values, defaultEncrypt);
     }
 
     function removeSpaceEnv(
@@ -133,7 +160,8 @@ abstract contract SpaceEnvironmentManager is
     function _setSpaceEnv(
         string calldata space,
         string calldata key,
-        string calldata value
+        string calldata value,
+        bool encrypt
     ) internal validEnvKey(key) validEnvValue(value) {
         // Check if the key already exists
         // Using 1-based indexing in spaceEnvKeyIndices, so 0 means the key doesn't exist
@@ -144,16 +172,18 @@ abstract contract SpaceEnvironmentManager is
             spaceEnvKeyIndices[space][key] = spaceEnvKeys[space].length;
         }
 
-        emit EnvChanged(space, _msgSender(), key, spaceEnvs[space][key], value);
+        emit EnvChanged(space, _msgSender(), key, spaceEnvs[space][key], value, encrypt);
         spaceEnvs[space][key] = value;
+        isSpaceEnvEncrypted[space][key] = encrypt;
     }
 
     function _setSpaceEnvs(
         string calldata space,
         string[] calldata keys,
-        string[] calldata values
+        string[] calldata values,
+        bool[] memory encrypt
     ) internal {
-        if (keys.length != values.length || keys.length > MAX_BATCH_SIZE) {
+        if (keys.length != values.length || keys.length != encrypt.length || keys.length > MAX_BATCH_SIZE) {
             revert InvalidInput();
         }
 
@@ -163,7 +193,7 @@ abstract contract SpaceEnvironmentManager is
                 bytes(values[i]).length > MAX_ENV_VALUE_LENGTH) {
                 revert InvalidInput();
             }
-            _setSpaceEnv(space, keys[i], values[i]);
+            _setSpaceEnv(space, keys[i], values[i], encrypt[i]);
         }
     }
 
@@ -194,6 +224,7 @@ abstract contract SpaceEnvironmentManager is
         spaceEnvKeys[space].pop();
         delete spaceEnvKeyIndices[space][key];
         delete spaceEnvs[space][key];
+        delete isSpaceEnvEncrypted[space][key];
 
         emit EnvRemoved(space, _msgSender(), key);
     }

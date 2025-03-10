@@ -23,11 +23,13 @@ abstract contract EnvironmentManager is AccessControl, Pausable, ReentrancyGuard
     string[] public envKeys;
     // Using 1-based indexing to distinguish from default value 0
     mapping(string => uint256) private envKeyIndices;
+    // Track which values are encrypted
+    mapping(string => bool) public isEncrypted;
 
     error InvalidInput();
     error EnvNotFound();
 
-    event EnvChanged(address indexed operator, string indexed key, string fromValue, string toValue);
+    event EnvChanged(address indexed operator, string indexed key, string fromValue, string toValue, bool encrypted);
     event EnvRemoved(address indexed operator, string indexed key);
 
     modifier validEnvKey(string calldata key) {
@@ -52,26 +54,48 @@ abstract contract EnvironmentManager is AccessControl, Pausable, ReentrancyGuard
         return envs[_key];
     }
 
-    function getAllEnvs() external view returns (string[] memory keys, string[] memory values)  {
+    function getAllEnvs() external view returns (string[] memory keys, string[] memory values, bool[] memory encrypted)  {
         keys = envKeys;
         values = new string[](keys.length);
+        encrypted = new bool[](keys.length);
         for (uint256 i = 0; i < keys.length; i++) {
             values[i] = envs[keys[i]];
+            encrypted[i] = isEncrypted[keys[i]];
         }
+    }
+
+    function setEnv(
+        string calldata key,
+        string calldata value,
+        bool encrypt
+    ) external virtual onlyRole(OPERATOR_ROLE) {
+        _setEnv(key, value, encrypt);
     }
 
     function setEnv(
         string calldata key,
         string calldata value
     ) external virtual onlyRole(OPERATOR_ROLE) {
-        _setEnv(key, value);
+        _setEnv(key, value, false);
+    }
+
+    function setEnvs(
+        string[] calldata keys,
+        string[] calldata values,
+        bool[] calldata encrypt
+    ) external virtual onlyRole(OPERATOR_ROLE) whenNotPaused nonReentrant {
+        _setEnvs(keys, values, encrypt);
     }
 
     function setEnvs(
         string[] calldata keys,
         string[] calldata values
     ) external virtual onlyRole(OPERATOR_ROLE) whenNotPaused nonReentrant {
-        _setEnvs(keys, values);
+        bool[] memory defaultEncrypt = new bool[](keys.length);
+        for (uint256 i = 0; i < keys.length; i++) {
+            defaultEncrypt[i] = false;
+        }
+        _setEnvs(keys, values, defaultEncrypt);
     }
 
     function removeEnv(string calldata key) external virtual onlyRole(OPERATOR_ROLE) {
@@ -80,7 +104,8 @@ abstract contract EnvironmentManager is AccessControl, Pausable, ReentrancyGuard
 
     function _setEnv(
         string calldata key,
-        string calldata value
+        string calldata value,
+        bool encrypt
     ) internal validEnvKey(key) validEnvValue(value) {
         // Check if the key already exists
         // Using 1-based indexing in envKeyIndices, so 0 means the key doesn't exist
@@ -91,15 +116,17 @@ abstract contract EnvironmentManager is AccessControl, Pausable, ReentrancyGuard
             envKeyIndices[key] = envKeys.length;
         }
 
-        emit EnvChanged(_msgSender(), key, envs[key], value);
+        emit EnvChanged(_msgSender(), key, envs[key], value, encrypt);
         envs[key] = value;
+        isEncrypted[key] = encrypt;
     }
 
     function _setEnvs(
         string[] calldata keys,
-        string[] calldata values
+        string[] calldata values,
+        bool[] memory encrypt
     ) internal {
-        if (keys.length != values.length || keys.length > MAX_BATCH_SIZE) {
+        if (keys.length != values.length || keys.length != encrypt.length || keys.length > MAX_BATCH_SIZE) {
             revert InvalidInput();
         }
 
@@ -109,7 +136,7 @@ abstract contract EnvironmentManager is AccessControl, Pausable, ReentrancyGuard
                 bytes(values[i]).length > MAX_ENV_VALUE_LENGTH) {
                 revert InvalidInput();
             }
-            _setEnv(keys[i], values[i]);
+            _setEnv(keys[i], values[i], encrypt[i]);
         }
     }
 
@@ -135,6 +162,7 @@ abstract contract EnvironmentManager is AccessControl, Pausable, ReentrancyGuard
         envKeys.pop();
         delete envKeyIndices[key];
         delete envs[key];
+        delete isEncrypted[key];
 
         emit EnvRemoved(_msgSender(), key);
     }

@@ -844,6 +844,7 @@ describe("Eliza Agent System", function () {
             it("Should set and get space environment variable", async function () {
                 const { owner, elizaAgentRegistry } = await setupSpaceOwner();
 
+                // @ts-ignore - Interface might not be updated yet
                 await elizaAgentRegistry.setSpaceEnv(
                     TEST_SPACE,
                     "TEST_KEY",
@@ -852,6 +853,49 @@ describe("Eliza Agent System", function () {
                 expect(
                     await elizaAgentRegistry.getSpaceEnv(TEST_SPACE, "TEST_KEY")
                 ).to.equal("TEST_VALUE");
+
+                // Check that it's not encrypted by default
+                const result = await elizaAgentRegistry.getAllSpaceEnvs(
+                    TEST_SPACE
+                );
+                const keys = result[0];
+                const values = result[1];
+                const encrypted = result[2];
+
+                const index = Array.from(keys).findIndex(
+                    (k) => k === "TEST_KEY"
+                );
+                expect(index).to.be.gte(0);
+                expect(encrypted[index]).to.equal(false);
+            });
+
+            it("Should set and get encrypted space environment variable", async function () {
+                const { owner, elizaAgentRegistry } = await setupSpaceOwner();
+
+                // @ts-ignore - Interface might not be updated yet
+                await elizaAgentRegistry[
+                    "setSpaceEnv(string,string,string,bool)"
+                ](TEST_SPACE, "SECRET_KEY", "SECRET_VALUE", true);
+                expect(
+                    await elizaAgentRegistry.getSpaceEnv(
+                        TEST_SPACE,
+                        "SECRET_KEY"
+                    )
+                ).to.equal("SECRET_VALUE");
+
+                // Check that it's marked as encrypted
+                const result = await elizaAgentRegistry.getAllSpaceEnvs(
+                    TEST_SPACE
+                );
+                const keys = result[0];
+                const values = result[1];
+                const encrypted = result[2];
+
+                const index = Array.from(keys).findIndex(
+                    (k) => k === "SECRET_KEY"
+                );
+                expect(index).to.be.gte(0);
+                expect(encrypted[index]).to.equal(true);
             });
 
             it("Should set multiple space environment variables in batch", async function () {
@@ -859,22 +903,66 @@ describe("Eliza Agent System", function () {
 
                 const keys = ["KEY1", "KEY2"];
                 const values = ["VALUE1", "VALUE2"];
+                // @ts-ignore - Interface might not be updated yet
                 await elizaAgentRegistry.setSpaceEnvs(TEST_SPACE, keys, values);
 
-                const [resultKeys, resultValues] =
-                    await elizaAgentRegistry.getAllSpaceEnvs(TEST_SPACE);
+                const result = await elizaAgentRegistry.getAllSpaceEnvs(
+                    TEST_SPACE
+                );
+                const resultKeys = result[0];
+                const resultValues = result[1];
+                const resultEncrypted = result[2];
+
                 expect(Array.from(resultKeys)).to.have.members(keys);
                 expect(Array.from(resultValues)).to.have.members(values);
+                // Default is not encrypted
+                expect(Array.from(resultEncrypted)).to.deep.equal([
+                    false,
+                    false,
+                ]);
+            });
+
+            it("Should set multiple space environment variables with encryption", async function () {
+                const { owner, elizaAgentRegistry } = await setupSpaceOwner();
+
+                const keys = ["KEY1", "KEY2"];
+                const values = ["VALUE1", "VALUE2"];
+                const encrypt = [true, false];
+                // @ts-ignore - Interface might not be updated yet
+                await elizaAgentRegistry[
+                    "setSpaceEnvs(string,string[],string[],bool[])"
+                ](TEST_SPACE, keys, values, encrypt);
+
+                const result = await elizaAgentRegistry.getAllSpaceEnvs(
+                    TEST_SPACE
+                );
+                const resultKeys = result[0];
+                const resultValues = result[1];
+                const resultEncrypted = result[2];
+
+                expect(Array.from(resultKeys)).to.have.members(keys);
+                expect(Array.from(resultValues)).to.have.members(values);
+                // Check encryption status matches what we set
+                const key1Index = Array.from(resultKeys).findIndex(
+                    (k) => k === "KEY1"
+                );
+                const key2Index = Array.from(resultKeys).findIndex(
+                    (k) => k === "KEY2"
+                );
+                expect(resultEncrypted[key1Index]).to.equal(true);
+                expect(resultEncrypted[key2Index]).to.equal(false);
             });
 
             it("Should remove space environment variable", async function () {
                 const { owner, elizaAgentRegistry } = await setupSpaceOwner();
 
-                await elizaAgentRegistry.setSpaceEnv(
-                    TEST_SPACE,
-                    "TEST_KEY",
-                    "TEST_VALUE"
-                );
+                await elizaAgentRegistry
+                    .connect(owner)
+                    ["setSpaceEnv(string,string,string)"](
+                        TEST_SPACE,
+                        "TEST_KEY",
+                        "TEST_VALUE"
+                    );
                 await elizaAgentRegistry.removeSpaceEnv(TEST_SPACE, "TEST_KEY");
                 expect(
                     await elizaAgentRegistry.getSpaceEnv(TEST_SPACE, "TEST_KEY")
@@ -890,7 +978,11 @@ describe("Eliza Agent System", function () {
                 await expect(
                     elizaAgentRegistry
                         .connect(user)
-                        .setSpaceEnv(TEST_SPACE, "TEST_KEY", "TEST_VALUE")
+                        ["setSpaceEnv(string,string,string)"](
+                            TEST_SPACE,
+                            "TEST_KEY",
+                            "TEST_VALUE"
+                        )
                 ).to.be.revertedWithCustomError(
                     elizaAgentRegistry,
                     "UnauthorizedAccess"
@@ -905,7 +997,11 @@ describe("Eliza Agent System", function () {
                 await expect(
                     elizaAgentRegistry
                         .connect(user)
-                        .setSpaceEnv(TEST_SPACE, "TEST_KEY", "TEST_VALUE")
+                        ["setSpaceEnv(string,string,string)"](
+                            TEST_SPACE,
+                            "TEST_KEY",
+                            "TEST_VALUE"
+                        )
                 ).to.be.reverted;
             });
 
@@ -922,12 +1018,12 @@ describe("Eliza Agent System", function () {
                 });
 
                 // Set same key with different values in different spaces
-                await elizaAgentRegistry.setSpaceEnv(
+                await elizaAgentRegistry["setSpaceEnv(string,string,string)"](
                     TEST_SPACE,
                     "COMMON_KEY",
                     "VALUE1"
                 );
-                await elizaAgentRegistry.setSpaceEnv(
+                await elizaAgentRegistry["setSpaceEnv(string,string,string)"](
                     "another-space",
                     "COMMON_KEY",
                     "VALUE2"
@@ -952,7 +1048,7 @@ describe("Eliza Agent System", function () {
 
                 const longKey = "x".repeat(33); // MAX_ENV_KEY_LENGTH + 1
                 await expect(
-                    elizaAgentRegistry.setSpaceEnv(
+                    elizaAgentRegistry["setSpaceEnv(string,string,string)"](
                         TEST_SPACE,
                         longKey,
                         "TEST_VALUE"
@@ -968,7 +1064,7 @@ describe("Eliza Agent System", function () {
 
                 const longValue = "x".repeat(257); // MAX_ENV_VALUE_LENGTH + 1
                 await expect(
-                    elizaAgentRegistry.setSpaceEnv(
+                    elizaAgentRegistry["setSpaceEnv(string,string,string)"](
                         TEST_SPACE,
                         "TEST_KEY",
                         longValue
@@ -989,7 +1085,9 @@ describe("Eliza Agent System", function () {
                     .fill(0)
                     .map((_, i) => `VALUE${i}`);
                 await expect(
-                    elizaAgentRegistry.setSpaceEnvs(TEST_SPACE, keys, values)
+                    elizaAgentRegistry[
+                        "setSpaceEnvs(string,string[],string[])"
+                    ](TEST_SPACE, keys, values)
                 ).to.be.revertedWithCustomError(
                     elizaAgentRegistry,
                     "InvalidInput"
@@ -1001,7 +1099,7 @@ describe("Eliza Agent System", function () {
                     await setupSpaceOwner();
 
                 // Set env as original owner
-                await elizaAgentRegistry.setSpaceEnv(
+                await elizaAgentRegistry["setSpaceEnv(string,string,string)"](
                     TEST_SPACE,
                     "TEST_KEY",
                     "TEST_VALUE"
@@ -1024,7 +1122,11 @@ describe("Eliza Agent System", function () {
                 // New owner should be able to set env
                 await elizaAgentRegistry
                     .connect(user)
-                    .setSpaceEnv(TEST_SPACE, "NEW_KEY", "NEW_VALUE");
+                    ["setSpaceEnv(string,string,string)"](
+                        TEST_SPACE,
+                        "NEW_KEY",
+                        "NEW_VALUE"
+                    );
                 expect(
                     await elizaAgentRegistry.getSpaceEnv(TEST_SPACE, "NEW_KEY")
                 ).to.equal("NEW_VALUE");
@@ -1074,10 +1176,51 @@ describe("Eliza Agent System", function () {
 
                 await deployedAgent
                     .connect(operator)
-                    .setEnv("TEST_KEY", "TEST_VALUE");
+                    ["setEnv(string,string)"]("TEST_KEY", "TEST_VALUE");
                 expect(await deployedAgent.getEnv("TEST_KEY")).to.equal(
                     "TEST_VALUE"
                 );
+
+                // Check that it's not encrypted by default
+                const result = await deployedAgent.getAllEnvs();
+                const keys = result[0];
+                const values = result[1];
+                const encrypted = result[2];
+
+                const index = Array.from(keys).findIndex(
+                    (k) => k === "TEST_KEY"
+                );
+                expect(index).to.be.gte(0);
+                expect(encrypted[index]).to.equal(false);
+            });
+
+            it("Should set encrypted environment variable", async function () {
+                const { operator } = await loadFixture(deployFixture);
+                const { deployedAgent } = await loadFixture(deployAgent);
+
+                // @ts-ignore - Interface might not be updated yet
+                await deployedAgent
+                    .connect(operator)
+                    ["setEnv(string,string,bool)"](
+                        "SECRET_KEY",
+                        "SECRET_VALUE",
+                        true
+                    );
+                expect(await deployedAgent.getEnv("SECRET_KEY")).to.equal(
+                    "SECRET_VALUE"
+                );
+
+                // Check that it's marked as encrypted
+                const result = await deployedAgent.getAllEnvs();
+                const keys = result[0];
+                const values = result[1];
+                const encrypted = result[2];
+
+                const index = Array.from(keys).findIndex(
+                    (k) => k === "SECRET_KEY"
+                );
+                expect(index).to.be.gte(0);
+                expect(encrypted[index]).to.equal(true);
             });
 
             it("Should set multiple environment variables in batch", async function () {
@@ -1086,12 +1229,59 @@ describe("Eliza Agent System", function () {
 
                 const keys = ["KEY1", "KEY2"];
                 const values = ["VALUE1", "VALUE2"];
-                await deployedAgent.connect(operator).setEnvs(keys, values);
+                await deployedAgent
+                    .connect(operator)
+                    ["setEnvs(string[],string[])"](keys, values);
 
-                const [resultKeys, resultValues] =
-                    await deployedAgent.getAllEnvs();
+                const result = await deployedAgent.getAllEnvs();
+                const resultKeys = result[0];
+                const resultValues = result[1];
+                const resultEncrypted = result[2];
+
                 expect(Array.from(resultKeys)).to.have.members(keys);
                 expect(Array.from(resultValues)).to.have.members(values);
+                // Default is not encrypted
+                expect(Array.from(resultEncrypted)).to.deep.equal([
+                    false,
+                    false,
+                ]);
+            });
+
+            it("Should set multiple environment variables in batch with encryption", async function () {
+                const { operator } = await loadFixture(deployFixture);
+                const { deployedAgent } = await loadFixture(deployAgent);
+
+                const keys = ["KEY1", "KEY2"];
+                const values = ["VALUE1", "VALUE2"];
+                const encrypt = [true, false];
+
+                // Use the new setEnvs function with encryption parameter
+                // @ts-ignore - Interface might not be updated yet
+                await deployedAgent
+                    .connect(operator)
+                    ["setEnvs(string[],string[],bool[])"](
+                        keys,
+                        values,
+                        encrypt
+                    );
+
+                const result = await deployedAgent.getAllEnvs();
+                const resultKeys = result[0];
+                const resultValues = result[1];
+                const resultEncrypted = result[2];
+
+                expect(Array.from(resultKeys)).to.have.members(keys);
+                expect(Array.from(resultValues)).to.have.members(values);
+
+                // Check encryption status matches what we set
+                const key1Index = Array.from(resultKeys).findIndex(
+                    (k) => k === "KEY1"
+                );
+                const key2Index = Array.from(resultKeys).findIndex(
+                    (k) => k === "KEY2"
+                );
+                expect(resultEncrypted[key1Index]).to.equal(true);
+                expect(resultEncrypted[key2Index]).to.equal(false);
             });
 
             it("Should remove environment variable", async function () {
@@ -1100,7 +1290,7 @@ describe("Eliza Agent System", function () {
 
                 await deployedAgent
                     .connect(operator)
-                    .setEnv("TEST_KEY", "TEST_VALUE");
+                    ["setEnv(string,string)"]("TEST_KEY", "TEST_VALUE");
                 await deployedAgent.connect(operator).removeEnv("TEST_KEY");
                 expect(await deployedAgent.getEnv("TEST_KEY")).to.equal("");
             });
@@ -1113,7 +1303,7 @@ describe("Eliza Agent System", function () {
                 await expect(
                     deployedAgent
                         .connect(operator)
-                        .setEnv(longKey, "TEST_VALUE")
+                        ["setEnv(string,string)"](longKey, "TEST_VALUE")
                 ).to.be.revertedWithCustomError(deployedAgent, "InvalidInput");
             });
         });
@@ -1327,7 +1517,9 @@ describe("Eliza Agent System", function () {
             it("Should prevent unauthorized env management", async function () {
                 const { deployedAgent } = await loadFixture(deployAgent);
                 await expect(
-                    deployedAgent.connect(user).setEnv("TEST_KEY", "TEST_VALUE")
+                    deployedAgent
+                        .connect(user)
+                        ["setEnv(string,string)"]("TEST_KEY", "TEST_VALUE")
                 ).to.be.reverted;
             });
 
